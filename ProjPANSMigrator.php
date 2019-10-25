@@ -34,7 +34,7 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
 
     }
 
-    public function process($file, $origin_pid) {
+    public function process($file, $origin_pid, $test_ct = null) {
 
         $target_visit_event = $this->getProjectSetting('visit-event-id') ;
         $target_main_event = $this->getProjectSetting('main-config-event-id');
@@ -70,10 +70,12 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
 
         // foreach row in first event
         foreach($data as $record => $event) {
-
-            //if ($ctr > 1) exit;
-
             $ctr++;
+
+            //for testing if we have a test_ct set then stop
+            if ((null !== $test_ct) && ($ctr > $test_ct)) break;
+
+
             echo "<br> Analyzing row $ctr: RECORD: $record ";
 
             foreach($event as $row ) {

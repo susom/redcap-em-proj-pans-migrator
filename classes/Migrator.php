@@ -22,6 +22,12 @@ if (!$_POST['origin_pid']) {
     die("No originating project ID set.");
 }
 
+if ($_POST['record_ct']) {
+    $rec_ct = $_POST['record_ct'];
+} else {
+    $rec_ct = NULL;
+}
+
 
 $origin_pid = $_POST['origin_pid'];
 $file = fopen($_FILES['file']['tmp_name'], 'r');
@@ -41,7 +47,7 @@ if (isset($_POST['dump_map'])) {
 
 
 if ($file) {
-    $data = $module->process($file, $origin_pid);
+    $data = $module->process($file, $origin_pid, $rec_ct);
 } else {
     die("Uploaded file is corrupted!");
 }
