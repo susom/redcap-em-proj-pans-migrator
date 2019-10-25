@@ -1,0 +1,128 @@
+{
+  "name": "Project PANS Migrator",
+  "namespace": "Stanford\\ProjPANSMigrator",
+  "description": "This EM migrates data from old PANS to new PANS",
+  "authors": [
+    {
+      "name": "Jae Lee",
+      "email": "jael@stanford.edu",
+      "institution": "Stanford University"
+    }
+  ],
+  "permissions": [
+  ],
+  "links": {
+    "project": [
+      {
+        "name": "Migrator",
+        "icon": "page_white_stack",
+        "url": "view/index.php",
+        "show-header-and-footer": true
+      }
+    ]
+  },
+  "project-settings": [
+    {
+      "key": "enable-project-debug-logging",
+      "name": "<b>Enable Debug Logging</b></h6><i> (Requires emLogger)</i><br>If you have questions enabling debugging, please contact the REDCap team for help.",
+      "required": false,
+      "type": "checkbox"
+    },
+    {
+      "key": "main-config-event-id",
+      "name": "<div class='alert alert-success'><b>Main Config Event Name</b></div>",
+      "required": false,
+      "type": "event-list"
+    },
+    {
+      "key": "visit-event-id",
+      "name": "<div class='alert alert-success'><b>Visit Event Name</b></div>",
+      "required": false,
+      "type": "event-list"
+    },
+    {
+      "key": "target-mrn-field",
+      "name": "<div class='alert alert-success'><b>Target MRN Field</b></div>",
+      "required": false,
+      "type": "field-list"
+    },
+    {
+      "key": "target-pans-id",
+      "name": "<div class='alert alert-success'><b>Legacy PANS Id Field</b></div>",
+      "required": false,
+      "type": "field-list"
+    },
+    {
+      "key": "target-hc-id",
+      "name": "<div class='alert alert-success'><b>Legacy Healthy Control Id Field</b></div>",
+      "required": false,
+      "type": "field-list"
+    },
+    {
+      "key": "target-cytof-id",
+      "name": "<div class='alert alert-success'><b>Legacy Cytof Id Field</b></div>",
+      "required": false,
+      "type": "field-list"
+    },
+    {
+      "key": "target-monocyte-id",
+      "name": "<div class='alert alert-success'><b>Legacy Monocyte Id Field</b></div>",
+      "required": false,
+      "type": "field-list"
+    },
+    {
+      "key": "protocol-enrolled",
+      "name": "<div class='alert alert-success'><b>Protocol Enrolled Field</b></div>",
+      "required": false,
+      "type": "field-list"
+    },
+    {
+      "key": "visit-pans-id",
+      "name": "<div class='alert alert-success'><b>Legacy Visit PANS Id Field</b></div>",
+      "required": false,
+      "type": "field-list"
+    },
+    {
+      "key": "visit-hc-id",
+      "name": "<div class='alert alert-success'><b>Legacy Visit Healthy Controls Id Field</b></div>",
+      "required": false,
+      "type": "field-list"
+    },
+    {
+      "key": "visit-cytof-id",
+      "name": "<div class='alert alert-success'><b>Legacy Visit CyTOF Id Field</b></div>",
+      "required": false,
+      "type": "field-list"
+    },
+    {
+      "key": "visit-monocyte-id",
+      "name": "<div class='alert alert-success'><b>Legacy Visit Monocyte Id Field</b></div>",
+      "required": false,
+      "type": "field-list"
+    },
+    {
+      "key": "visit-protocol",
+      "name": "<div class='alert alert-success'><b>Visit Protocol Field</b></div>",
+      "required": false,
+      "type": "field-list"
+    },
+    {
+      "key": "origin-pid",
+      "name": "<div class='alert alert-success'><b>Origin PID</b></div>",
+      "required": false,
+      "type": "project-id"
+    },
+    {
+      "key": "origin-main-id",
+      "name": "<div class='alert alert-success'><b>Origin Main Id Field</b></div>",
+      "required": false,
+      "type": "text"
+    },
+    {
+      "key": "origin-main-event",
+      "name": "<div class='alert alert-success'><b>Origin Main Event</b></div>",
+      "required": false,
+      "type": "text"
+    }
+  ]
+}
