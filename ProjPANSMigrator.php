@@ -12,12 +12,6 @@ include_once 'classes/MappedRow.php';
 use REDCap;
 use Exception;
 
-use \Stanford\Utilities\RepeatingForms as RepeatingForms;
-
-
-/**
- */
-
 class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
 {
     use emLoggerTrait;

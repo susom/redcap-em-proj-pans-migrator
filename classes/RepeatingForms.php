@@ -1,5 +1,5 @@
 <?php
-namespace Stanford\Utilities;
+namespace Stanford\ProjPANSMigrator;
 
 use \REDCap;
 use \Project;
