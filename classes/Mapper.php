@@ -5,16 +5,18 @@ namespace Stanford\ProjPANSMigrator;
 
 use REDCap;
 
+
 class Mapper
 {
 
-
+    const LAST_ROW = 1120; //5000 if not testing
 
     private $data_dict;
     private $to_data_dict;
     private $mapper;
     private $repeating_forms;
     private $header;
+    private $transmogrifier;
 
     /**
      * [treatment_other_ep1] => Array (
@@ -30,6 +32,13 @@ class Mapper
      */
 
 
+    /**
+     *
+     * Mapper constructor.
+     * @param $origin_pid
+     * @param $file
+     *
+     */
     public function __construct($origin_pid, $file) {
         global $module;
         //$this->data_dict = REDCap::getDataDictionary($origin_pid, 'array', false );
@@ -41,6 +50,15 @@ class Mapper
 
         $this->mapper = $this->createMapper($file);
         //$module->emDebug($this->mapper);  exit;
+
+        try {
+            $this->transmogrifier = Transmogrifier::getInstance($this->mapper);
+        } catch (\Exception $e) {
+            die ("Unable to create mapper!  " . $e->getMessage());
+        }
+
+        //$module->emDebug($this->transmogrifier->getModifier()); exit;
+
 
         $this->repeating_forms = $this->getUniqueRepeatingForms();
 
@@ -96,7 +114,9 @@ class Mapper
                     //$module->emDebug($ptr. " : " . $from_field. " : " .  $col_title . " : " . $line[$ptr]);
                     $data[$from_field][$col_title] = $line[$ptr++];
                 }
-                //$line = $this->cleanSpecialCases($line);
+
+
+               //add some extra meata-data from data-dictionary
 /**
                 * Data Dictionary example
                 *     [arthritis] => Array
@@ -124,7 +144,7 @@ class Mapper
 
                 $to_field = $data[$from_field]['to_field'];
 
-                //add some extra meata-data from data-dictionary
+
                 $data[$from_field]['from_fieldtype'] = $this->data_dict[$from_field]['field_type'];
                 $data[$from_field]['from_form'] = $this->data_dict[$from_field]['form_name'];
                 $data[$from_field]['to_form'] = $this->to_data_dict[$to_field]['form_name'];
@@ -151,7 +171,7 @@ class Mapper
                 $pointer++;
                 //$this->emDebug($data, $line);
                 //TODO: reset pointer to 5000, setting to 100 for testing
-                if ($pointer == 500) break;
+                if ($pointer == self::LAST_ROW) break;
             }
         }
         fclose($file);
@@ -161,18 +181,14 @@ class Mapper
 
     }
 
-    function getMapper() {
-        return $this->mapper;
-    }
-
-    function getRepeatingForms() {
-        return $this->repeating_forms;
-    }
-
     function printDictionary() {
         //TODO: internal commas are messing up the csv download
         //$this->downloadCSVFile("foo.csv", $this->mapper);
 
+        $this->transmogrifier->print();;
+
+        echo '<br>============================================';
+        echo "<br>FIELD MAPPING";
         echo "<br>". implode (",", $this->header);
 
         foreach ($this->mapper as $row) {
@@ -207,4 +223,21 @@ class Mapper
         echo $data;
         exit();
     }
+
+    /**
+     * GETTER / SETTER
+     */
+
+    function getMapper() {
+        return $this->mapper;
+    }
+
+    function getTransmogrifier() {
+        return $this->transmogrifier;
+    }
+
+    function getRepeatingForms() {
+        return $this->repeating_forms;
+    }
+
 }

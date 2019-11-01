@@ -4,10 +4,12 @@
 
 namespace Stanford\ProjPANSMigrator;
 
-include_once("emLoggerTrait.php");
+include_once "emLoggerTrait.php";
+include_once "EMConfigurationException.php";
 require_once "classes/RepeatingForms.php";
 include_once 'classes/Mapper.php';
 include_once 'classes/MappedRow.php';
+include_once 'classes/Transmogrifier.php';
 
 use REDCap;
 use Exception;
@@ -24,6 +26,7 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
         //upload csv file that defines the mapping from old field to new field
         //$this->mapper = new Mapper($this->getProjectSetting('origin-pid'), $file);
         $this->mapper = new Mapper($origin_pid, $file);
+
         $this->mapper->printDictionary(); exit;
 
     }
@@ -80,13 +83,23 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
 
                 //new MappedRow();
                 try {
-                    $mrow = new MappedRow($row, $origin_id_field, $mrn_field, $this->mapper->getMapper());
-                } catch (\Exception $e) {
-                    $msg = 'Unable to process row $ctr: '. $e->getMessage();
+                    $mrow = new MappedRow($ctr, $row, $origin_id_field, $mrn_field, $this->mapper->getMapper());
+                } catch (EMConfigurationException $ece) {
+                    $msg = 'Unable to process row $ctr: ' . $ece->getMessage();
                     $this->emError($msg);
-                    $this->logProblemRow($ctr, $row, $msg,  $not_entered);
+                    $this->logProblemRow($ctr, $row, $msg, $not_entered);
+                    die ($msg);  // EM config is not set properly. Just abandon ship;'
+                } catch (Exception $e) {
+                    $msg = 'Unable to process row $ctr: ' . $e->getMessage();
+                    $this->emError($msg);
+                    $this->logProblemRow($ctr, $row, $msg, $not_entered);
                     continue;
                 }
+
+//                if ($mrow->processRow() === FALSE) {
+//                    $this->logProblemRow($ctr, $row, $msg, $not_entered);
+//                };
+
 
                 //check whether the id_pans id (ex: 77-0148) already exists in which case only handle the visit portion of the row
                 //$filter = "[" . REDCap::getEventNames(true, false,$target_main_event) . "][" . $target_id . "] = '$id'";
@@ -121,7 +134,8 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
 
                 //HANDLE MAIN EVENT DATA
                 //if (empty($found)) { //or if proctocl is 77 and visit id is 01 (overwrite in that case?
-                if ($mrow->getVisitID() == '01') {  // and 77??
+                //TODO: check sometimes demog not in first visit, just insert multiple times??
+                //if ($mrow->getVisitID() == '01') {  // and 77??
 
                     if (null !== ($mrow->getMainData())) {
                         //save the main event data
@@ -140,7 +154,7 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
                             $this->emLog("Successfully saved main event data for record " . $mrow->getOriginalID() . " with new id $record_id");
                         }
                     }
-                }
+                //}
 
 
                 //HANDLE VISIT EVENT DATA
