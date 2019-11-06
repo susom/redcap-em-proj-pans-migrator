@@ -8,6 +8,7 @@ include_once "emLoggerTrait.php";
 include_once "EMConfigurationException.php";
 require_once "classes/RepeatingForms.php";
 include_once 'classes/Mapper.php';
+include_once 'classes/DDMigrator.php';
 include_once 'classes/MappedRow.php';
 include_once 'classes/Transmogrifier.php';
 
@@ -25,11 +26,13 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
 
         //upload csv file that defines the mapping from old field to new field
         //$this->mapper = new Mapper($this->getProjectSetting('origin-pid'), $file);
-        $this->mapper = new Mapper($origin_pid, $file);
+        $mapper = new Mapper($origin_pid, $file);
 
-        $this->mapper->printDictionary(); exit;
+        $mapper->downloadCSVFile();
+        //$mapper->printDictionary(); exit;
 
     }
+
 
     public function process($file, $origin_pid, $test_ct = null) {
 
@@ -240,6 +243,16 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
 
         //$this->downloadCSVFile("troublerows.csv",$not_entered);
 
+    }
+
+
+    public function migrateDataDictionary($file, $origin_pid) {
+
+
+        $dd_mig = new DDMigrator($file, $origin_pid);
+
+        $dd_mig->updateDD();
+        //$dd_mig->print(100);
     }
 
     function logProblemRow($ctr, $row, $msg, &$not_entered)  {

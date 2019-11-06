@@ -38,11 +38,16 @@ $file = fopen($_FILES['file']['tmp_name'], 'r');
 if (isset($_POST['dump_map'])) {
     $module->emDebug("dumping map");
     $module->dumpMap($file, $origin_pid);
-
+    exit;
 }
 
 
 
+if (isset($_POST['new_dd'])) {
+    $module->emDebug("Updating New Data Dictionary");
+    $module->migrateDataDictionary($file, $origin_pid);
+    exit;
+}
 
 
 

@@ -9,7 +9,7 @@ use REDCap;
 class Mapper
 {
 
-    const LAST_ROW = 1120; //5000 if not testing
+    const LAST_ROW = 5000; //5000 if not testing
 
     private $data_dict;
     private $to_data_dict;
@@ -43,8 +43,15 @@ class Mapper
         global $module;
         //$this->data_dict = REDCap::getDataDictionary($origin_pid, 'array', false );
         $this->data_dict = $module->getMetadata($origin_pid);
+
+        //add current sequence of data_dict
+
+        //$module->emDebug($this->data_dict); exit;
+
         $this->to_data_dict = $module->getMetadata($module->getProjectId());
         //$module->emDebug($origin_pid, $this->to_data_dict); exit;
+
+        $this->setCurrentSequence();
 
         //$module->emDebug($this->data_dict);
 
@@ -62,10 +69,20 @@ class Mapper
 
         $this->repeating_forms = $this->getUniqueRepeatingForms();
 
-        $module->emDebug($this->repeating_forms);
+        //$module->emDebug($this->repeating_forms);
     }
 
-    /**
+
+    private function setCurrentSequence() {
+        global $module;
+        $i = 1;
+        foreach ($this->to_data_dict as $key => $val) {
+
+            $this->to_data_dict[$key]['new_sequence'] = $i++;
+            //$module->emDebug($key, $this->data_dict[$key], $i);
+        }
+    }
+    /**0
      * Look throough the to_form_instance column of the map and make a list of all the repeating forms (unique
      * with instance number removed)
      */
@@ -95,13 +112,13 @@ class Mapper
 
         if ($file) {
             while (($line = fgetcsv($file, 1000, ",")) !== false) {
-                //$this->emDebug("LINE $pointer: ", $line);
+                //if ($pointer == 88) $module->emDebug("LINE $pointer: ", $line);
 
                 if ($pointer == 0) {
                     $this->header =  $line;
 
                     //add the extra column headers
-                    array_push($this->header, 'from_fieldtype','from_choice', 'to_choice');
+                    array_push($this->header, 'dd_from_fieldtype','dd_from_choice', 'dd_to_choice', 'new_sequence');
 
                     //$module->emDebug("after:", $this->header); exit;
                     $pointer++;
@@ -112,6 +129,7 @@ class Mapper
                 $from_field = $line[$ptr];
                 foreach ($this->header as $col_title) {
                     //$module->emDebug($ptr. " : " . $from_field. " : " .  $col_title . " : " . $line[$ptr]);
+
                     $data[$from_field][$col_title] = $line[$ptr++];
                 }
 
@@ -143,11 +161,13 @@ class Mapper
 */
 
                 $to_field = $data[$from_field]['to_field'];
+                //if ($pointer == 88) $module->emDebug("LINE TO FIELD $pointer: ", $to_field);
 
 
-                $data[$from_field]['from_fieldtype'] = $this->data_dict[$from_field]['field_type'];
-                $data[$from_field]['from_form'] = $this->data_dict[$from_field]['form_name'];
-                $data[$from_field]['to_form'] = $this->to_data_dict[$to_field]['form_name'];
+                $data[$from_field]['dd_from_fieldtype'] = $this->data_dict[$from_field]['field_type'];
+                $data[$from_field]['dd_from_form'] = $this->data_dict[$from_field]['form_name'];
+                $data[$from_field]['dd_to_form'] = $this->to_data_dict[$to_field]['form_name'];
+                $data[$from_field]['new_sequence'] = $this->to_data_dict[$to_field]['new_sequence'];
 
                 //if field_type is radio/checkbox/dropdwon highlight if the choices are different.
                 if (0 == strcmp('checkbox', $this->data_dict[$from_field]['field_type']) ||
@@ -182,6 +202,7 @@ class Mapper
     }
 
     function printDictionary() {
+        global $module;
         //TODO: internal commas are messing up the csv download
         //$this->downloadCSVFile("foo.csv", $this->mapper);
 
@@ -198,13 +219,13 @@ class Mapper
     }
 
 
-    private function downloadCSVFile2($filename, $data)
+    public function downloadCSVFile($filename='mapper.csv')
     {
         header('Content-Type: text/csv');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
 
         $fp = fopen('php://output', 'wb');
-
+        fputcsv($fp, $this->header);
         foreach ($this->mapper as $row) {
             fputcsv($fp, $row);//, "\t", '"' );
         }
@@ -213,7 +234,7 @@ class Mapper
     }
 
 
-    private function downloadCSVFile($filename, $data)
+    private function downloadCSVFile2($filename, $data)
     {
         $data = implode("\n", $data);
         // Download file and then delete it from the server

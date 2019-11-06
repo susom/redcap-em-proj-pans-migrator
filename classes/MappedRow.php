@@ -363,19 +363,19 @@ class MappedRow {
             }
 
             //check if empty checkbox field
-            if ($mapper[$key]['from_fieldtype'] == 'checkbox') {
+            if ($mapper[$key]['dd_from_fieldtype'] == 'checkbox') {
                 if (empty(array_filter($val))) {
                     continue; //don't upload this checkbox
                 }
             }
 
             //also skip if it's a calculated field
-            if ($mapper[$key]['from_fieldtype'] == 'calc') {
+            if ($mapper[$key]['dd_from_fieldtype'] == 'calc') {
                 continue; //don't upload this checkbox
             }
 
             //also skip if descriptive
-            if ($mapper[$key]['from_fieldtype'] == 'descriptive') {
+            if ($mapper[$key]['dd_from_fieldtype'] == 'descriptive') {
                 continue; //don't upload this descriptive
             }
 
