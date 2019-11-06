@@ -58,9 +58,6 @@ class DDMigrator
 
 
         $this->map = $this->mapper->getMapper();
-        //$module->emDebug($this->map );exit;
-
-
 
         //reorganize by mid-field
         $this->map_mid = $this->rekeyMapByMidField();
@@ -69,9 +66,6 @@ class DDMigrator
 
         $this->data_dict = $module->getMetadata($module->getProjectId());
         //$module->emDebug($this->data_dict); exit;
-
-
-
 
     }
 
@@ -104,13 +98,10 @@ class DDMigrator
             $from_form = trim($this->map[$key]['from_form']);
             $to_form = trim($this->map[$key]['to_form']);
 
-
-            if ($key == 'ep_day' || $key == 'ep_days') {
-                $module->emDebug("EPD DAY: $key  / $to_field / $to_mid_field", $this->map[$key], $this->map_mid[$key]);
-            }
-
             if ((empty(trim($to_field))) && (empty(trim($to_mid_field)))) {
                 //$module->emDebug("DELETING $key", $to_field, $to_mid_field, $to_form, $from_form, $this->map[$key], $this->map_mid[$key]); exit;
+
+                //TODO: save deleted to an array and display at request
                 $module->emDebug("DELETING $key as $to_field and  $to_mid_field are unset. row: ". $this->map[$key]['original_sequence']);
                 unset($this->data_dict[$key]);
                 continue;
@@ -145,7 +136,7 @@ class DDMigrator
         }
 
         $this->replaceReferences($this->reg_pattern, $this->reg_replace);
-        $module->emDEbug("NEW DICT", $this->data_dict, $this->data_dict2);
+        //$module->emDEbug("NEW DICT", $this->data_dict, $this->data_dict2);
 
         $this->downloadCSV();
     }
@@ -188,13 +179,12 @@ class DDMigrator
                 echo "<br>$key: comparing  FORMS: ". $map['from_form'].' is not equal to '.$map['to_form'].' in a case insensitive string comparison';
                 if (array_key_exists($key, $this->data_dict)) {
                     $this->data_dict[$key]['form_name'] = strtolower(trim($map['to_form']));
-                    $module->emDebug($map['to_form']);
+                    //$module->emDebug($map['to_form']);
                 }
             }
         }
 
         $this->replaceReferences($this->reg_pattern, $this->reg_replace);
-        $module->emDEbug("NEW DICT", $this->data_dict2);
 
         $this->downloadCSV();
 
@@ -203,7 +193,7 @@ class DDMigrator
     private function replaceReferences($target, $replacement) {
         global $module;
 
-        $module->emDebug($target, $replacement);
+        //$module->emDebug($target, $replacement);
 
         $foo =  preg_replace($target, $replacement, json_encode($this->data_dict));
         $this->data_dict2 = json_decode($foo, true);
