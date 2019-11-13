@@ -18,6 +18,12 @@
         "icon": "page_white_stack",
         "url": "view/index.php",
         "show-header-and-footer": true
+      },
+      {
+        "name": "Test",
+        "icon": "page_white_stack",
+        "url": "classes/ConsentHandler.php",
+        "show-header-and-footer": true
       }
     ]
   },

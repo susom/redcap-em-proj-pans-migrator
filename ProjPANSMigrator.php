@@ -14,6 +14,7 @@ include_once 'classes/Transmogrifier.php';
 
 use REDCap;
 use Exception;
+use Survey;
 
 class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
 {
@@ -23,6 +24,11 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
 
     public function dumpMap($file, $origin_pid) {
         $this->emDebug("Starting Map Dump");
+
+
+        Survey::archiveResponseAsPDF('111-0011-01','1776','consent_for_child_healthy', 1);
+
+        //exit;
 
         //upload csv file that defines the mapping from old field to new field
         //$this->mapper = new Mapper($this->getProjectSetting('origin-pid'), $file);
@@ -34,7 +40,7 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
     }
 
 
-    public function process($file, $origin_pid, $test_ct = null) {
+    public function process($file, $origin_pid, $first_ct= 0, $test_ct = null) {
 
         $target_visit_event = $this->getProjectSetting('visit-event-id') ;
         $target_main_event = $this->getProjectSetting('main-config-event-id');
@@ -66,11 +72,11 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
         //$this->emDebug($md);
 
         $data = REDCap::getData($origin_pid, 'array', null, null, array($origin_main_event));
-        $ctr = 0;
+        $ctr = $first_ct;
 
         // foreach row in first event
         foreach($data as $record => $event) {
-            $ctr++;
+
 
             //for testing if we have a test_ct set then stop
             if ((null !== $test_ct) && ($ctr > $test_ct)) break;
@@ -228,7 +234,7 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
                 }
 
             }
-
+            $ctr++;
         }
 
         $this->emDEbug($not_entered);

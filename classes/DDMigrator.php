@@ -52,6 +52,8 @@ class DDMigrator
     {
         global $module;
 
+
+
         //or origin_id????
         //$this->mapper = new Mapper($module->getProjectId(), $file);
         $this->mapper = new Mapper($origin_id, $file);
@@ -85,47 +87,65 @@ class DDMigrator
 
         global $module;
 
+        $deleted = array();
         //$module->emDebug($this->map);
         //$module->emDebug($this->map_mid); exit;
 
         //iterate through the current dictionary rather than starting with the mapper
         foreach ($this->data_dict as $key => $val) {
-            //get the $to_field from $map
-            $to_field = trim($this->map[$key]['to_field']);
-            $to_mid_field = trim($this->map_mid[$key]['to_field']);
 
 
-            $from_form = trim($this->map[$key]['from_form']);
-            $to_form = trim($this->map[$key]['to_form']);
 
-            if ((empty(trim($to_field))) && (empty(trim($to_mid_field)))) {
-                //$module->emDebug("DELETING $key", $to_field, $to_mid_field, $to_form, $from_form, $this->map[$key], $this->map_mid[$key]); exit;
+            //get the $to_field from both version of the map : the original and the updated mid
+            $test_to_field = trim($this->map[$key]['to_field']);
+            $test_mid_field = trim($this->map_mid[$key]['to_field']);
+
+            //special case: if the key does not exist in the either map, then assume that it's a valid new addition and let it be
+            if (!array_key_exists($key, $this->map) && !array_key_exists($key, $this->map_mid)) {
+                $module->emDebug("Found a field in data dictionary that is not in the mapper: ".$key);
+                continue;
+            }
+
+            //if mid-field exists, use it. Otherwise use $to field
+            $to_field =  isset($this->map_mid[$key]['to_field']) ?  trim($this->map_mid[$key]['to_field'])  : trim($this->map[$key]['to_field']);
+            $from_form = isset($this->map_mid[$key]['to_field']) ?  trim($this->map_mid[$key]['from_form']) : trim($this->map[$key]['from_form']);
+            $to_form  =  isset($this->map_mid[$key]['to_field']) ?  trim($this->map_mid[$key]['to_form'])   : trim($this->map[$key]['to_form']);
+
+            $search = 'illness_sym_comment';
+            if(preg_match("/{$search}/i", $key)) {
+                $module->emDebug("<br>Checking map $key against original  $test_to_field or updated $test_mid_field");
+                $module->emDebug("<br>strcasecmp: ".strcasecmp(trim($key), trim($test_to_field)));
+                $module->emDebug("<br>empty: ".!empty(trim($test_mid_field)));
+            }
+
+            //if ((empty(trim($to_field))) && (empty(trim($to_mid_field)))) {
+            if (empty($to_field)) {
 
                 //TODO: save deleted to an array and display at request
-                $module->emDebug("DELETING $key as $to_field and  $to_mid_field are unset. row: ". $this->map[$key]['original_sequence']);
+                //$module->emDebug("DELETING $key as $to_field and  $to_mid_field are unset. row: ". $this->map[$key]['original_sequence']);
+                $deleted[ $this->map[$key]['original_sequence']] = $to_field;
                 unset($this->data_dict[$key]);
                 continue;
             }
 
-            //check the original field name
-            if ((strcasecmp(trim($key), trim($to_field)) !== 0) && (!empty(trim($to_field))) ) {
-                //found the key and the tofield is different
-                $this->data_dict[$key]['field_name'] = strtolower(trim($to_field));
 
+            //check the update mid map, if key matches the to field, leave as is
+            //if different and not empty, update the data dictionary
+
+            //check the original field name
+            //if ((strcasecmp(trim($key), trim($to_field)) !== 0) && (!empty(trim($to_field))) ) {
+            if (strcasecmp(trim($key), $to_field) !== 0) {
+                //update the fieldname in the data dictionary
+                $this->data_dict[$key]['field_name'] = strtolower($to_field);
+
+                if(preg_match("/{$search}/i", $key)) {
+                    $module->emDebug("<br>UUpdating is $key:  to  $to_field");
+                }
+
+                //set up the regex pattern for ranching logic replacement
                 $this->reg_pattern[] = '/\['.$key.'(\]|\()/';
                 $this->reg_replace[]='['.$to_field.'$1';
 
-            } else if ((strcasecmp(trim($key), trim($to_mid_field)) !== 0) && (!empty(trim($to_mid_field)))) {
-                //check the mid-stream field name
-                $this->data_dict[$key]['field_name'] = strtolower(trim($to_mid_field));
-
-
-                $from_form = $this->map_mid[$key]['from_form'];
-                $to_form = $this->map_mid[$key]['to_form'];
-
-
-                $this->reg_pattern[] = '/\['.$key.'(\]|\()/';
-                $this->reg_replace[]='['.$to_mid_field.'$1';
             }
 
             //update forms
@@ -135,12 +155,17 @@ class DDMigrator
             }
         }
 
+        $module->emDebug("DELETED: n=". count($deleted));
         $this->replaceReferences($this->reg_pattern, $this->reg_replace);
         //$module->emDEbug("NEW DICT", $this->data_dict, $this->data_dict2);
 
         $this->downloadCSV();
     }
 
+    /**
+     * Abandaoned attempt that iterated over the mapping file. Decided to go with starting with the data dictionary
+     *
+     */
     public function updateDD2() {
         global $module;
 

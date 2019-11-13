@@ -159,7 +159,7 @@ class RepeatingForms
         $instance = new self($pid);
 
         $all_events = $instance->Proj->getRepeatingFormsEvents();
-        $module->emDebug($all_events);
+        //$module->emDebug($all_events);
 
 
         // Is this project longitudinal?

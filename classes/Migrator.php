@@ -22,12 +22,9 @@ if (!$_POST['origin_pid']) {
     die("No originating project ID set.");
 }
 
-if ($_POST['record_ct']) {
-    $rec_ct = $_POST['record_ct'];
-} else {
-    $rec_ct = NULL;
-}
 
+$first_ct = $_POST['start_record'] ? $_POST['start_record'] : 0;
+$last_ct = $_POST['last_record'] ? $_POST['last_record'] : NULL;
 
 $origin_pid = $_POST['origin_pid'];
 $file = fopen($_FILES['file']['tmp_name'], 'r');
@@ -52,7 +49,7 @@ if (isset($_POST['new_dd'])) {
 
 
 if ($file) {
-    $data = $module->process($file, $origin_pid, $rec_ct);
+    $data = $module->process($file, $origin_pid, $first_ct, $last_ct);
 } else {
     die("Uploaded file is corrupted!");
 }
