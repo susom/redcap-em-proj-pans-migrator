@@ -481,7 +481,8 @@ class RepeatingForms
             $this->last_error_message = "Event ID Required for longitudinal project in " . __FUNCTION__;
             return false;
         } else if (!$this->is_longitudinal) {
-            $event_id = $this->event_id;
+            //todo: ask why not use event_id passed in...
+            //$event_id = $this->event_id;
         }
 
         // If the instance ID is null, get the next one because we are saving a new instance
@@ -501,7 +502,8 @@ class RepeatingForms
 //        $module->emDebug($return["errors"], $return['item_count']);
 
         if (!empty($return["errors"]) and ($return["item_count"] <= 0)) {
-            $this->last_error_message = "Problem saving instance $next_instance_id for record $record_id in project $this->pid. Returned: " . json_encode($return);
+            $module->emError("Problem saving instance $next_instance_id for record $record_id in in event $event_id in project $this->pid.", $return["errors"]);
+            $this->last_error_message = "Problem saving instance $next_instance_id for record $record_id in in event $event_id in project $this->pid. Returned: " . json_encode($return);
             return false;
         } else {
             return true;
