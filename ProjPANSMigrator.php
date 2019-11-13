@@ -72,11 +72,11 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
         //$this->emDebug($md);
 
         $data = REDCap::getData($origin_pid, 'array', null, null, array($origin_main_event));
-        $ctr = $first_ct;
+        $ctr = 0;
 
         // foreach row in first event
         foreach($data as $record => $event) {
-
+            if ($ctr < $first_ct) continue;
 
             //for testing if we have a test_ct set then stop
             if ((null !== $test_ct) && ($ctr > $test_ct)) break;
@@ -157,7 +157,7 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
 
                         if (isset($return["errors"]) and !empty($return["errors"])) {
                             $msg = "Not able to save project data for record $record_id with original id: " . $mrow->getOriginalID(). implode(" / ",$return['errors']);
-                            $this->emError($msg, $return['errors']);
+                            $this->emError($msg, $return['errors'], $temp_instance);
                             $this->logProblemRow($ctr, $row, $msg,  $not_entered);
                         } else {
                             $this->emLog("Successfully saved main event data for record " . $mrow->getOriginalID() . " with new id $record_id");
@@ -184,7 +184,7 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
                             $status = $rf_event->saveInstance($record_id, $v_data, $next_instance, $v_event_id);
 
                             if ($rf_event->last_error_message) {
-                                $this->emError("There was an error: ", $rf_event->last_error_message);
+                                $this->emError("There was an error saving record $record_id: in event <$v_event_id>", $rf_event->last_error_message, $v_data);
                                 $this->logProblemRow($ctr, $row, $rf_event->last_error_message,  $not_entered);
 
                             }
@@ -214,7 +214,7 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
                             $rf_form->saveInstance($record_id, $form_data, $next_instance, $target_main_event);
 
                             if ($rf_form->last_error_message) {
-                                $this->emError("There was an error: ", $rf_form->last_error_message);
+                                $this->emError("There was an error: ", $rf_form->last_error_message, $form_data);
                                 $this->logProblemRow($ctr, $row, $rf_form->last_error_message,  $not_entered);
 
                             }
