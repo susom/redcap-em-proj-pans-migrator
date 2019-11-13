@@ -76,7 +76,10 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
 
         // foreach row in first event
         foreach($data as $record => $event) {
-            if ($ctr < $first_ct) continue;
+            if ($ctr < $first_ct) {
+                $ctr++;
+                continue;
+            }
 
             //for testing if we have a test_ct set then stop
             if ((null !== $test_ct) && ($ctr > $test_ct)) break;
