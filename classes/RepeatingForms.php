@@ -493,6 +493,7 @@ class RepeatingForms
             $next_instance_id = $instance_id;
         }
 
+        $module->emDebug("Saving repeating form rec # $record_id in event $event_id");
         // Include instance and format into REDCap expected format
         $new_instance[$record_id]['repeat_instances'][$event_id][$this->instrument][$next_instance_id] = $data;
 
@@ -502,7 +503,7 @@ class RepeatingForms
 //        $module->emDebug($return["errors"], $return['item_count']);
 
         if (!empty($return["errors"]) and ($return["item_count"] <= 0)) {
-            $module->emError("Problem saving instance $next_instance_id for record $record_id in in event $event_id in project $this->pid.", $return["errors"]);
+            $module->emError("Problem saving instance $next_instance_id for record $record_id in event $event_id in project $this->pid.", $return["errors"]);
             $this->last_error_message = "Problem saving instance $next_instance_id for record $record_id in in event $event_id in project $this->pid. Returned: " . json_encode($return);
             return false;
         } else {
