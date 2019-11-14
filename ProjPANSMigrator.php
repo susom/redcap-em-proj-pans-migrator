@@ -160,7 +160,7 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
 
                         if (isset($return["errors"]) and !empty($return["errors"])) {
                             $msg = "Row $ctr: Not able to save project data for record $record_id with original id: " . $mrow->getOriginalID(). implode(" / ",$return['errors']);
-                            $this->emError($msg, $return['errors'], $temp_instance);
+                            $this->emError($msg, $return['errors']);
                             $this->logProblemRow($ctr, $row, $msg,  $not_entered);
                         } else {
                             $this->emLog("Row $ctr: Successfully saved main event data for record " . $mrow->getOriginalID() . " with new id $record_id");
@@ -181,18 +181,25 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
 
                         foreach ($mrow->getVisitData() as $v_event => $v_data) {
                             $v_event_id = REDCap::getEventIdFromUniqueEvent($v_event);
-                            $next_instance = $rf_event->getNextInstanceId($record_id, $v_event_id);
-                            $this->emDebug("Row $ctr: EVENT is $v_event_id from event name $v_event");
 
+                            if (empty($v_event_id)) {
+                                $msg = "Row $ctr: EVENT ID was not found: $v_event_id from event name $v_event";
+                                $this->emError($msg);
+                                $this->logProblemRow($ctr, $row, $msg, $not_entered);
+                                continue;
+                            }
+
+                            $next_instance = $rf_event->getNextInstanceId($record_id, $v_event_id);
 
                             $this->emDebug("Row $ctr: REPEAT EVENT: $v_event Next instance is $next_instance in event $v_event_id");
                             $status = $rf_event->saveInstance($record_id, $v_data, $next_instance, $v_event_id);
 
                             if ($rf_event->last_error_message) {
-                                $this->emError("Row $ctr: There was an error saving record $record_id: in event <$v_event_id>", $rf_event->last_error_message, $v_data);
-                                $this->logProblemRow($ctr, $row, $rf_event->last_error_message,  $not_entered);
+                                $this->emError("Row $ctr: There was an error saving record $record_id: in event <$v_event_id>", $rf_event->last_error_message);
+                                $this->logProblemRow($ctr, $row, $rf_event->last_error_message, $not_entered);
 
                             }
+
                         }
                     } else {
                         $msg = "Row $ctr: Visit Event had no data to enter for " . $mrow->getOriginalID();
@@ -219,7 +226,7 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
                             $rf_form->saveInstance($record_id, $form_data, $next_instance, $target_main_event);
 
                             if ($rf_form->last_error_message) {
-                                $this->emError("Row $ctr: There was an error: ", $rf_form->last_error_message, $form_data);
+                                $this->emError("Row $ctr: There was an error: ", $rf_form->last_error_message);
                                 $this->logProblemRow($ctr, $row, $rf_form->last_error_message,  $not_entered);
 
                             }
