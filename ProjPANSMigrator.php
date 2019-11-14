@@ -128,7 +128,7 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
 
                 //Set the paritcipant ID
                 if (empty($found)) {
-                    $this->emDEbug("EMPTY: $record NOT FOUND");
+                    $this->emDEbug("Row $ctr: EMPTY: $record NOT FOUND");
                     //not found so create a new record ID
 
                     //get a new record ID in the format S_0001
@@ -159,11 +159,11 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
                         $return = REDCap::saveData('array', $temp_instance);
 
                         if (isset($return["errors"]) and !empty($return["errors"])) {
-                            $msg = "Not able to save project data for record $record_id with original id: " . $mrow->getOriginalID(). implode(" / ",$return['errors']);
+                            $msg = "Row $ctr: Not able to save project data for record $record_id with original id: " . $mrow->getOriginalID(). implode(" / ",$return['errors']);
                             $this->emError($msg, $return['errors'], $temp_instance);
                             $this->logProblemRow($ctr, $row, $msg,  $not_entered);
                         } else {
-                            $this->emLog("Successfully saved main event data for record " . $mrow->getOriginalID() . " with new id $record_id");
+                            $this->emLog("Row $ctr: Successfully saved main event data for record " . $mrow->getOriginalID() . " with new id $record_id");
                         }
                     }
                 //}
@@ -182,18 +182,20 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
                         foreach ($mrow->getVisitData() as $v_event => $v_data) {
                             $v_event_id = REDCap::getEventIdFromUniqueEvent($v_event);
                             $next_instance = $rf_event->getNextInstanceId($record_id, $v_event_id);
+                            $this->emDebug("Row $ctr: EVENT is $v_event_id from event name $v_event");
 
-                            $this->emDebug("REPEAT EVENT: $v_event Next instance is $next_instance");
+
+                            $this->emDebug("Row $ctr: REPEAT EVENT: $v_event Next instance is $next_instance in event $v_event_id");
                             $status = $rf_event->saveInstance($record_id, $v_data, $next_instance, $v_event_id);
 
                             if ($rf_event->last_error_message) {
-                                $this->emError("There was an error saving record $record_id: in event <$v_event_id>", $rf_event->last_error_message, $v_data);
+                                $this->emError("Row $ctr: There was an error saving record $record_id: in event <$v_event_id>", $rf_event->last_error_message, $v_data);
                                 $this->logProblemRow($ctr, $row, $rf_event->last_error_message,  $not_entered);
 
                             }
                         }
                     } else {
-                        $msg = "Visit Event had no data to enter for " . $mrow->getOriginalID();
+                        $msg = "Row $ctr: Visit Event had no data to enter for " . $mrow->getOriginalID();
                         $this->emError($msg);
                         $this->logProblemRow($ctr, $row, $msg, $not_entered);
                     }
@@ -210,14 +212,14 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
                         $this->emDebug("Repeat Form instrument $form_name ");
                         foreach ($instances as $form_instance => $form_data) {
                             $rf_form = ${"rf_" . $form_name};
-                            $this->emDebug("Working on $form_name with $rf_form on instance number ". $form_instance . " Adding as $next_instance");
+                            $this->emDebug("Row $ctr: Working on $form_name with $rf_form on instance number ". $form_instance . " Adding as $next_instance");
 
                             $next_instance = $rf_form->getNextInstanceId($record_id, $target_main_event);
 
                             $rf_form->saveInstance($record_id, $form_data, $next_instance, $target_main_event);
 
                             if ($rf_form->last_error_message) {
-                                $this->emError("There was an error: ", $rf_form->last_error_message, $form_data);
+                                $this->emError("Row $ctr: There was an error: ", $rf_form->last_error_message, $form_data);
                                 $this->logProblemRow($ctr, $row, $rf_form->last_error_message,  $not_entered);
 
                             }
