@@ -252,6 +252,7 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
         }
 
         $this->emDEbug($not_entered);
+        $this->emDebug($data_invalid);
         //printout the error file
         //file_put_contents("foo.csv", $not_entered);
 
