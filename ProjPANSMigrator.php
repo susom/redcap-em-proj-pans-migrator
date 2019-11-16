@@ -25,8 +25,8 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
     public function dumpMap($file, $origin_pid) {
         $this->emDebug("Starting Map Dump");
 
-
-        Survey::archiveResponseAsPDF('111-0011-01','1776','consent_for_child_healthy', 1);
+        //test PDF
+        //Survey::archiveResponseAsPDF('111-0011-01','1776','consent_for_child_healthy', 1);
 
         //exit;
 
@@ -48,6 +48,7 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
         $origin_main_event = $this->getProjectSetting('origin-main-event');
 
         $not_entered = array();
+        $data_invalid = array();
 
         $this->emDebug("Starting Migration");
 
@@ -96,6 +97,9 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
                 //new MappedRow();
                 try {
                     $mrow = new MappedRow($ctr, $row, $origin_id_field, $mrn_field, $this->mapper->getMapper());
+                    if (!empty($mrow->getDataError())) {
+                        $data_invalid[$record] = $mrow->getDataError();
+                    }
                 } catch (EMConfigurationException $ece) {
                     $msg = 'Unable to process row $ctr: ' . $ece->getMessage();
                     $this->emError($msg);
@@ -225,14 +229,12 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
 
                             $rf_form->saveInstance($record_id, $form_data, $next_instance, $target_main_event);
 
-                            if ($rf_form->last_error_message) {
+                            //if ($rf_form->last_error_message) {
+                            if ($rf_form===false) {
                                 $this->emError("Row $ctr: There was an error: ", $rf_form->last_error_message);
                                 $this->logProblemRow($ctr, $row, $rf_form->last_error_message,  $not_entered);
-
                             }
-
                         }
-
                     }
                 } else {
                     //VISIT ID found
@@ -255,9 +257,13 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
 
 
         //exit;
-        echo "$event: <pre>";
+        echo "<br>INVALID DATA: <pre>";
+        print_r($data_invalid);
+        echo "</pre>";
+        echo "PROBLEM ROWS: <pre>";
         print_r($not_entered);
         echo "</pre>";
+
 
         //$this->downloadCSVFile("troublerows.csv",$not_entered);
 

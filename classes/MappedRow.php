@@ -3,8 +3,10 @@
 
 namespace Stanford\ProjPANSMigrator;
 
-use REDCap;
+include_once "DataCheck.php";
+
 use Exception;
+use REDCap;
 
 class MappedRow {
     private $ctr;
@@ -28,6 +30,8 @@ class MappedRow {
 
     private $mapper;
     private $transmogrifier;  // converter of fieldtypes
+
+    private $data_errors;
 
     public function __construct($ctr, $row, $id_field, $mrn_field, $mapper) {
         global $module;
@@ -396,9 +400,18 @@ class MappedRow {
                 }
             }
 
+            //check if there are data errors to handle?
+            if (!DataCheck::valueValid($key, $val)) {
+                $module->emError("Data INVALID / DELETED : key is $key and val is $val" );
+                $this->data_errors[$key] = $val;
+                $val = NULL;
+
+            };
 
             $target_field = $mapper[$key]['to_field'];
             $target_field_array = array();
+
+
 
             //check if there are customizations to change that $target field
             //if (!isset($mapper[$key]['custom'])) {
@@ -538,6 +551,9 @@ class MappedRow {
     }
     public function getErrorMessage() {
         return $this->error_msg;
+    }
+    public function getDataError() {
+        return $this->data_errors;
     }
     public function setMainData($main_data) {
         $this->main_data = $main_data;
