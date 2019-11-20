@@ -166,13 +166,13 @@ class Transmogrifier {
 
         $target_field = $this->modifier[$from_field]['fields'];
         $concat_fields = $this->modifier[$from_field]['mapping'];
-        $module->emDebug($from_field,$concat_fields);
+        //$module->emDebug($from_field,$concat_fields);
 
         foreach ($concat_fields as $c_fields) {
             $val[trim($c_fields)] = $row[trim($c_fields)];
         }
         $return_array[$target_field]= implode("\n",$val);
-        $module->emDebug("CONCATTED: ",$return_array);
+        //$module->emDebug("CONCATTED: ",$return_array);
         return $return_array;
 
     }
