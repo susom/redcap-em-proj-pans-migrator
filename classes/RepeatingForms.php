@@ -431,8 +431,35 @@ class RepeatingForms
         }
     }
 
+    /**
+     *
+     * @param $record
+     * @param $event
+     * @return int|mixed
+     */
+    public function getNextInstanceIDForceReload($record, $event) {
+        global $module;
+
+        //getData for all surveys for this record
+
+        //$get_data = array('redcap_repeat_instance');
+        $params = array(
+            'return_format'       => 'json',
+            //'fields'              => $get_data, //we need to leave this open in order to get the instance id
+            'records'             => $record,
+            'events'              => $event
+        );
+        $q = REDCap::getData($params);
+        $results = json_decode($q, true);
+
+        $max_id = max(array_column($results, 'redcap_repeat_instance'));
+
+        return $max_id + 1;
+    }
+
 
     /**
+     * FIXME: this sometimes give stale ID. temp fix add another method which force loads data again
      * This function will return the next instance_id in the sequence that does not currently exist.
      * If there are no current instances, it will return 1.
      *

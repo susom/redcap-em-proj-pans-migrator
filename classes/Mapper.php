@@ -126,7 +126,7 @@ class Mapper
                 }
 
                 $ptr = 0;
-                $from_field = $line[$ptr];
+                $from_field = trim($line[$ptr]);
                 foreach ($this->header as $col_title) {
                     //$module->emDebug($ptr. " : " . $from_field. " : " .  $col_title . " : " . $line[$ptr]);
 
@@ -160,9 +160,8 @@ class Mapper
         )
 */
 
-                $to_field = $data[$from_field]['to_field'];
-                //if ($pointer == 88) $module->emDebug("LINE TO FIELD $pointer: ", $to_field);
-
+                $to_field = trim($data[$from_field]['to_field']);
+                    //if ($to_field == 88) $module->emDebug("LINE TO FIELD $pointer: ", $to_field);
 
                 $data[$from_field]['dd_from_fieldtype'] = $this->data_dict[$from_field]['field_type'];
                 $data[$from_field]['dd_from_form'] = $this->data_dict[$from_field]['form_name'];
@@ -180,11 +179,20 @@ class Mapper
                     $from_str = preg_replace('/\s+/', '', trim(strtolower($from_str_orig)));
                     $to_str = preg_replace('/\s+/', '', trim(strtolower($to_str_orig)));
 
+                    //debug section
+                    /**
+                    if (strpos($to_field, 'illness_worse_sym') !== false) {
+                        $module->emDebug("LINE TO FIELD $pointer: <". $to_field. ">");
+                        $module->emDebug("LINE TO FIELD $pointer: <".$from_str. ">");
+                        $module->emDebug("LINE TO FIELD $pointer: <". $to_str. ">");
+                        exit;
+                    }
+                    */
 
-                    if (0 !== strcmp($from_str,$to_str)) {
-                        //$module->emDEbug($from_field, $from_str,$to_field, $to_str);  exit;
-                        $data[$from_field]['from_choice'] = "'".$this->data_dict[$from_field]['select_choices_or_calculations']."'";
-                        $data[$from_field]['to_choice'] = "'".$this->to_data_dict[$to_field]['select_choices_or_calculations']."'";
+                    if ((0 !== strcmp($from_str,$to_str)) && ($to_field !== '')) {
+                        //$module->emDEbug($from_field, $from_str,$to_field, $to_str, $to_str_orig, $this->to_data_dict[$to_field]);
+                        $data[$from_field]['dd_from_choice'] = "'".$from_str."'";
+                        $data[$from_field]['dd_to_choice'] = "'".$to_str."'";
                     }
                 }
 

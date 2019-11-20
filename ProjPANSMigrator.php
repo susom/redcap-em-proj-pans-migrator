@@ -193,9 +193,13 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
                                 continue;
                             }
 
-                            $next_instance = $rf_event->getNextInstanceId($record_id, $v_event_id);
+                            //bug where getNextinstanceId is returning stale values.
+                            $next_instance_orig = $rf_event->getNextInstanceId($record_id, $v_event_id);
+                            $next_instance_forced = $rf_event->getNextInstanceIDForceReload($record_id, $v_event_id);
+                            $next_instance = max ($next_instance_orig, $next_instance_forced);
+                            $this->emDEbug("Row $ctr: record:" . $mrow->getOriginalID() . " nextinstnace is $next_instance, nextinstance_forced is $next_instance_forced using $next_instance");
 
-                            $this->emDebug("Row $ctr: REPEAT EVENT: $v_event Next instance is $next_instance in event $v_event_id");
+                            $this->emDebug("Row $ctr: record:" . $mrow->getOriginalID() . "REPEAT EVENT: $v_event Next instance is $next_instance in event $v_event_id");
                             $status = $rf_event->saveInstance($record_id, $v_data, $next_instance, $v_event_id);
 
                             if ($rf_event->last_error_message) {
