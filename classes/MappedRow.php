@@ -422,15 +422,22 @@ class MappedRow {
                     $target_field_array = $this->transmogrifier->splitName($key,$val ); //this can have two fields so expect an array
                     break;
                 case "textToCheckbox":
-                    $val =$this->transmogrifier->textToCheckbox($key, $val);
+                    $val = $this->transmogrifier->textToCheckbox($key, $val);
                     $target_field_array = $val;  //doing this to handle checkbox remaps if custom
                     //array_merge($target_field_array, $val);
                     break;
                 case "checkboxToCheckbox":
-                    $val =$this->transmogrifier->checkboxToCheckbox($key, $val);
+                    $val = $this->transmogrifier->checkboxToCheckbox($key, $val);
                     $target_field_array = $val;  //doing this to handle checkbox remaps if custom
                     //array_merge($target_field_array, $val);
                     break;
+                case "addToField":
+                    //target field is custom_1,
+                    //custom_2 is list of fields to concat
+
+                    $target_field_array = $this->transmogrifier->addToField($key, $row);
+                    break;
+
                 default:
 
                     $target_field_array[$target_field] = $val;  //only need to do this if we are needing to upload to data fields
@@ -482,7 +489,7 @@ class MappedRow {
 
         }
 
-
+        //$module->emDebug($main_data);
 
 
         //check that there is data in main_data

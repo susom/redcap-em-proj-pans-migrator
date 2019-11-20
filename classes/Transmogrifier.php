@@ -11,7 +11,7 @@ class Transmogrifier {
 
 
 
-    private $supported_custom = array("splitName", "textToCheckbox", "checkboxToCheckbox");
+    private $supported_custom = array("splitName", "textToCheckbox", "checkboxToCheckbox", "addToField");
 
 
     // array with from_field and array as value with map
@@ -44,10 +44,13 @@ class Transmogrifier {
                         $modifier[$k]['fields'] = $v['custom_1']; //target field
                         $modifier[$k]['mapping'] = json_decode($v['custom_2'], true);
                         break;
+                    case "addToField":
+                        $modifier[$k]['fields'] = $v['custom_1'];  //target field
+                        $modifier[$k]['mapping'] = explode("+", $v['custom_2']);  //expecting '+' delimited, concat both fields and enter into target
                     default:
 
-                        }
-                    }
+                }
+            }
         }
 
         $this->modifier = $modifier;
@@ -155,6 +158,22 @@ class Transmogrifier {
 
         return $return_array;
 
+
+    }
+
+    public function addToField($from_field, $row) {
+        global $module;
+
+        $target_field = $this->modifier[$from_field]['fields'];
+        $concat_fields = $this->modifier[$from_field]['mapping'];
+        $module->emDebug($from_field,$concat_fields);
+
+        foreach ($concat_fields as $c_fields) {
+            $val[trim($c_fields)] = $row[trim($c_fields)];
+        }
+        $return_array[$target_field]= implode("\n",$val);
+        $module->emDebug("CONCATTED: ",$return_array);
+        return $return_array;
 
     }
 
