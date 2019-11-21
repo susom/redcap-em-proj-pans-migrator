@@ -386,18 +386,9 @@ class MappedRow {
 
 
             if (empty($mapper[$key]['to_field'])) {
-
-                //check if there are any customizations
-                if (empty($mapper[$key]['custom'])) {
-                    $msg = "This key, $key, has no to field. There are no custom instructions, it will not be migrated.";
-                    //$this->emError($msg);
-                    $error_msg[] = $msg;
-                    //There is no customization, only a blank to_field so go on to next row. handle customization after
-                    //determining which group: main, repeating event, or repeating form
-                    continue;
-                } else {
-                    $module->emDebug("CUSTOM : ". $mapper[$key]['custom']);
-                }
+                $msg = "This key, $key, has no to field. It will not be migrated.";
+                $error_msg[] = $msg;
+                continue;
             }
 
             //check if there are data errors to handle?
@@ -411,7 +402,10 @@ class MappedRow {
             $target_field = $mapper[$key]['to_field'];
             $target_field_array = array();
 
-
+            //check if there are any customizations
+            if (!empty($mapper[$key]['custom'])) {
+                $module->emDebug("CUSTOM : ". $mapper[$key]['custom']. " : " . $mapper[$key]['custom_1']. " : " . $mapper[$key]['custom_2']);
+            }
 
             //check if there are customizations to change that $target field
             //if (!isset($mapper[$key]['custom'])) {
@@ -428,6 +422,11 @@ class MappedRow {
                     break;
                 case "checkboxToCheckbox":
                     $val = $this->transmogrifier->checkboxToCheckbox($key, $val);
+                    $target_field_array = $val;  //doing this to handle checkbox remaps if custom
+                    //array_merge($target_field_array, $val);
+                    break;
+                case "recodeRadio":
+                    $val = $this->transmogrifier->recodeRadio($key, $val);
                     $target_field_array = $val;  //doing this to handle checkbox remaps if custom
                     //array_merge($target_field_array, $val);
                     break;

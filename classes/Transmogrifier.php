@@ -11,7 +11,7 @@ class Transmogrifier {
 
 
 
-    private $supported_custom = array("splitName", "textToCheckbox", "checkboxToCheckbox", "addToField");
+    private $supported_custom = array("splitName", "textToCheckbox", "checkboxToCheckbox", "recodeRadio","addToField");
 
 
     // array with from_field and array as value with map
@@ -41,6 +41,10 @@ class Transmogrifier {
                         $modifier[$k]['mapping'] = self::formatCheckboxLookup($v['custom_2']);
                         break;
                     case "checkboxToCheckbox":
+                        $modifier[$k]['fields'] = $v['custom_1']; //target field
+                        $modifier[$k]['mapping'] = json_decode($v['custom_2'], true);
+                        break;
+                    case "recodeRadio":
                         $modifier[$k]['fields'] = $v['custom_1']; //target field
                         $modifier[$k]['mapping'] = json_decode($v['custom_2'], true);
                         break;
@@ -153,6 +157,28 @@ class Transmogrifier {
         foreach ($incoming_value as $code => $value) {
             $outgoing[$outgoing_value[$code]] = $value;
         }
+
+        $return_array[$target_field]=$outgoing;
+
+        return $return_array;
+
+
+    }
+
+    /**
+     * Used for recoding radio values
+     *
+     *
+     */
+    public function recodeRadio($from_field, $incoming_value) {
+        global $module;
+        //
+        $target_field = $this->modifier[$from_field]['fields'];
+        $outgoing_lookup = $this->modifier[$from_field]['mapping'];
+
+        $outgoing = $outgoing_lookup[$incoming_value];
+
+        $module->emDebug("RECODING $from_field value of $incoming_value TO $outgoing");
 
         $return_array[$target_field]=$outgoing;
 

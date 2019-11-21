@@ -94,7 +94,6 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
                 $origin_id_field = $this->getProjectSetting('origin-main-id'); //'clinical_barcode';
                 $mrn_field       = $this->getProjectSetting('target-mrn-field');
 
-                //new MappedRow();
                 try {
                     $mrow = new MappedRow($ctr, $row, $origin_id_field, $mrn_field, $this->mapper->getMapper());
                     if (!empty($mrow->getDataError())) {
@@ -253,6 +252,7 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
 
             }
             $ctr++;
+            unset($mrow);
         }
 
         $this->emDEbug($not_entered);
