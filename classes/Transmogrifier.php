@@ -126,7 +126,7 @@ class Transmogrifier {
     public function textToCheckbox($from_field, $incoming_value) {
 
         global $module;
-        //$module->emDebug("Transmogrifying $incoming_value for $from_field....", $this->modifier);
+        //$module->emDebug("TextToCheckbox:  $incoming_value for $from_field....", $this->modifier);
 
         //convert the incoming
         $formatted = self::formatForStringCompare($incoming_value);

@@ -403,9 +403,9 @@ class MappedRow {
             $target_field_array = array();
 
             //check if there are any customizations
-            if (!empty($mapper[$key]['custom'])) {
-                $module->emDebug("CUSTOM : ". $mapper[$key]['custom']. " : " . $mapper[$key]['custom_1']. " : " . $mapper[$key]['custom_2']);
-            }
+//            if (!empty($mapper[$key]['custom'])) {
+//                $module->emDebug("$key CUSTOM : ". $mapper[$key]['custom']. " : " . $mapper[$key]['custom_1']. " : " . $mapper[$key]['custom_2']);
+//            }
 
             //check if there are customizations to change that $target field
             //if (!isset($mapper[$key]['custom'])) {

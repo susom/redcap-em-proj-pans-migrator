@@ -56,7 +56,6 @@ class Mapper
         //$module->emDebug($this->data_dict);
 
         $this->mapper = $this->createMapper($file);
-        //$module->emDebug($this->mapper);  exit;
 
         try {
             $this->transmogrifier = Transmogrifier::getInstance($this->mapper);
