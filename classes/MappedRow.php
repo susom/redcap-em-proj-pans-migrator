@@ -39,7 +39,7 @@ class MappedRow {
         $this->ctr       = $ctr;
         $this->origin_id = $row[$id_field];
 
-        $this->mrn       = $row[$mrn_field];
+        $this->setMRN($row[$mrn_field]);
         $this->mrn_field = $mrn_field;
 
         $this->mapper    = $mapper;
@@ -236,6 +236,12 @@ class MappedRow {
     function checkMRNExistsInMain() {
         global $module;
 
+        //TODO: Uses redcap filter which can't handle wilds. Using option 1 (see setMRN method)
+        //PANS project stores mrn with hyphen between 7th and 8th digi
+        //option 1: add a hyphen in filter serach
+        //option 2: use sql query to search redcap_pdata
+        //option 3: store all stripped MRNs and array_key search
+
         $mrn = $this->mrn;
 
         if (empty($mrn)) {
@@ -257,7 +263,7 @@ class MappedRow {
 
         $q = REDCap::getData($params);
         $records = json_decode($q, true);
-
+        //$module->emDEbug("Search for ".$this->mrn. "came up with this", $records);
         return ($records);
     }
 
@@ -408,8 +414,7 @@ class MappedRow {
 //            }
 
             //check if there are customizations to change that $target field
-            //if (!isset($mapper[$key]['custom'])) {
-//                $array_val = null;
+
             switch($mapper[$key]['custom']){
                 case "splitName":
                     // expecting two parameters
@@ -441,7 +446,6 @@ class MappedRow {
 
                     $target_field_array[$target_field] = $val;  //only need to do this if we are needing to upload to data fields
             }
-//            }
 
             //$module->emDebug("=========> TARGET",$key,  $target_field_array);
 
@@ -478,6 +482,9 @@ class MappedRow {
             } else {
                 foreach ($target_field_array as $t_field => $t_val) {
                     //$main_data[$target_field] = $val;
+                    if ($t_field==='mrn') {
+                        $t_val = self::formatMRN($t_val);
+                    }
                     $main_data[$t_field] = $t_val;
                 }
 
@@ -530,6 +537,16 @@ class MappedRow {
 
     }
 
+    public static function formatMRN($mrn) {
+        //format it with hyphen for 8 digits so it doesn't overwrite the current (formatted)
+        //check for hyphen
+        if ((strlen($mrn)== 8) && (!preg_match("/-/i", $mrn))) {
+            $mrn = implode("-", str_split($mrn, 7));
+        }
+
+        return $mrn;
+    }
+
     /******************************************************/
     /*  SETTER / GETTER METHODS
     /******************************************************/
@@ -561,6 +578,13 @@ class MappedRow {
     public function getDataError() {
         return $this->data_errors;
     }
+
+    public function setMRN($mrn) {
+        global $module;
+
+        $this->mrn = self::formatMRN($mrn);
+    }
+
     public function setMainData($main_data) {
         $this->main_data = $main_data;
     }

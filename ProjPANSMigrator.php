@@ -144,7 +144,7 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
                     //now check that visit ID already doesn't exist
 
                     $record_id = $found[0][REDCap::getRecordIdField()];
-                    $this->emDEbug("Row $ctr: Found record ($record_id) ".$mrow->getIBHID()." with count " . count($row));
+                    //$this->emDEbug("Row $ctr: Found record ($record_id) ".$mrow->getIBHID()." with count " . count($row));
                 }
 
                 //HANDLE MAIN EVENT DATA
