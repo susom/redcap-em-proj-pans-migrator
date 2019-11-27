@@ -483,7 +483,7 @@ class MappedRow {
                 foreach ($target_field_array as $t_field => $t_val) {
                     //$main_data[$target_field] = $val;
                     if ($t_field==='mrn') {
-                        $t_val = self::formatMRN($t_val);
+                        $t_val = self::formatMRNRemoveHyphen($t_val);
                     }
                     $main_data[$t_field] = $t_val;
                 }
@@ -537,12 +537,22 @@ class MappedRow {
 
     }
 
-    public static function formatMRN($mrn) {
+    public static function formatMRNAddHyphen($mrn) {
         //format it with hyphen for 8 digits so it doesn't overwrite the current (formatted)
         //check for hyphen
         if ((strlen($mrn)== 8) && (!preg_match("/-/i", $mrn))) {
             $mrn = implode("-", str_split($mrn, 7));
         }
+
+        return $mrn;
+    }
+
+    public static function formatMRNRemoveHyphen($mrn) {
+        //26nov2019: request that MRN be stored without hyphen
+        //check for hyphen
+        //if  (preg_match("/-/i", $mrn)) {
+        $mrn = str_replace("-", "", $mrn);
+        //}
 
         return $mrn;
     }
@@ -582,7 +592,7 @@ class MappedRow {
     public function setMRN($mrn) {
         global $module;
 
-        $this->mrn = self::formatMRN($mrn);
+        $this->mrn = self::formatMRNRemoveHyphen($mrn);
     }
 
     public function setMainData($main_data) {
