@@ -11,7 +11,7 @@ class Transmogrifier {
 
 
 
-    private $supported_custom = array("splitName", "textToCheckbox", "checkboxToCheckbox", "recodeRadio","addToField");
+    private $supported_custom = array("splitName", "textToCheckbox", "checkboxToCheckbox", "recodeRadio","addToField", "archivePDF");
 
 
     // array with from_field and array as value with map

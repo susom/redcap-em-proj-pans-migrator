@@ -40,6 +40,16 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
     }
 
 
+    /**
+     *
+     *  TODO: Handle Archiving of CONSENT PDF:  Survey::archiveResponseAsPDF($record, $event_id, $form, $instance)
+     *
+     * @param $file
+     * @param $origin_pid
+     * @param int $first_ct
+     * @param null $test_ct
+     * @throws Exception
+     */
     public function process($file, $origin_pid, $first_ct= 0, $test_ct = null) {
 
         $target_visit_event = $this->getProjectSetting('visit-event-id') ;
@@ -98,6 +108,7 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
                     $mrow = new MappedRow($ctr, $row, $origin_id_field, $mrn_field, $this->mapper->getMapper());
                     if (!empty($mrow->getDataError())) {
                         $data_invalid[$record] = $mrow->getDataError();
+                        $this->emError($mrow->getDataError());
                     }
                 } catch (EMConfigurationException $ece) {
                     $msg = 'Unable to process row $ctr: ' . $ece->getMessage();
@@ -129,14 +140,14 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
                 }
 
 
-                //Set the paritcipant ID
+                //Set the participant ID
                 if (empty($found)) {
                     $this->emDEbug("Row $ctr: EMPTY: $record NOT FOUND");
                     //not found so create a new record ID
 
                     //get a new record ID in the format S_0001
                     $record_id = $this->getNextId($target_main_event,"S", 4);
-                    $this->emDebug("Row $ctr: Starting migration to new id: $record_id");
+                    $this->emDebug("Row $ctr: Starting migration of $record to new id: $record_id");
 
                 } else {
                     //$this->emDEbug("FOUND", $found);
@@ -144,7 +155,7 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
                     //now check that visit ID already doesn't exist
 
                     $record_id = $found[0][REDCap::getRecordIdField()];
-                    //$this->emDEbug("Row $ctr: Found record ($record_id) ".$mrow->getIBHID()." with count " . count($row));
+                    $this->emDEbug("Row $ctr: Found record ($record_id) ".$mrow->getIBHID()." with count " . count($row));
                 }
 
                 //HANDLE MAIN EVENT DATA
@@ -152,23 +163,24 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
                 //TODO: check sometimes demog not in first visit, just insert multiple times??
                 //if ($mrow->getVisitID() == '01') {  // and 77??
 
-                    if (null !== ($mrow->getMainData())) {
-                        //save the main event data
-                        //$return = REDCap::saveData('json', json_encode(array($main_data)));
-                        //RepeatingForms uses array. i think expected format is [id][event] = $data
-                        $temp_instance[$record_id][$this->getProjectSetting('main-config-event-id')] = $mrow->getMainData();
+                if (null !== ($mrow->getMainData())) {
+                    //save the main event data
+                    //$return = REDCap::saveData('json', json_encode(array($main_data)));
+                    //RepeatingForms uses array. i think expected format is [id][event] = $data
+                    $temp_instance = array();  //reset to empty
+                    $temp_instance[$record_id][$this->getProjectSetting('main-config-event-id')] = $mrow->getMainData();
 
-                        //$this->emDebug($temp_instance);
-                        $return = REDCap::saveData('array', $temp_instance);
+                    //$this->emDebug($temp_instance);
+                    $return = REDCap::saveData('array', $temp_instance);
 
-                        if (isset($return["errors"]) and !empty($return["errors"])) {
-                            $msg = "Row $ctr: Not able to save project data for record $record_id with original id: " . $mrow->getOriginalID(). implode(" / ",$return['errors']);
-                            $this->emError($msg, $return['errors']);
-                            $this->logProblemRow($ctr, $row, $msg,  $not_entered);
-                        } else {
-                            $this->emLog("Row $ctr: Successfully saved main event data for record " . $mrow->getOriginalID() . " with new id $record_id");
-                        }
+                    if (isset($return["errors"]) and !empty($return["errors"])) {
+                        $msg = "Row $ctr: Not able to save project data for record $record_id with original id: " . $mrow->getOriginalID(). implode(" / ",$return['errors']);
+                        $this->emError($msg, $return['errors'], $temp_instance);
+                        $this->logProblemRow($ctr, $row, $msg,  $not_entered);
+                    } else {
+                        $this->emLog("Row $ctr: Successfully saved main event data for record " . $mrow->getOriginalID() . " with new id $record_id");
                     }
+                }
                 //}
 
 

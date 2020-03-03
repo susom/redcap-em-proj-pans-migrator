@@ -531,6 +531,7 @@ class RepeatingForms
 
         if (!empty($return["errors"]) and ($return["item_count"] <= 0)) {
             $module->emError("Problem saving instance $next_instance_id for record $record_id in event $event_id in project $this->pid.", $return["errors"]);
+            $module->emError($new_instance);
             $this->last_error_message = "Problem saving instance $next_instance_id for record $record_id in in event $event_id in project $this->pid. Returned: " . json_encode($return);
             return false;
         } else {
