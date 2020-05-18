@@ -83,13 +83,30 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
         //$this->emDebug($md);
 
         $this->emDebug("About to get data");
+        $record_list = array();
+
+        //failing due to memory size.  will try restricting records according to
+        $r_params = array(
+            'project_id'    => $origin_pid,
+            'return_format' => 'json',
+            'events'        => array($origin_main_event),
+            'fields'        => array($this->getProjectSetting('origin-main-id'))
+        );
+        $r_json_data = REDCap::getData($r_params);
+        $r_data = json_decode($r_json_data, true);
+
+        for ($i = $first_ct; $i <= $test_ct; $i++) {
+            $record_list[] = $r_data[$i][$this->getProjectSetting('origin-main-id')];
+        }
+
+        $this->emDebug($record_list);
 
         //there seems to be an issue with getdata running into PHP Fatal error:  Allowed memory size of 2147483648 bytes exhausted
         $params = array(
             'project_id'   => $origin_pid,
             'return_format' => 'array',
             'events'        => array($origin_main_event),
-            'records'       => array('77-0001-01', '77-0001-02','77-0001-03','77-0001-04','77-0001-05','77-0001-06'),
+            'records'       => $record_list,
             'fields'        => null
         );
         $data = REDCap::getData($params);
