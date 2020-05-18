@@ -82,7 +82,19 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
         //$md = $this->getMetadata(237);
         //$this->emDebug($md);
 
-        $data = REDCap::getData($origin_pid, 'array', null, null, array($origin_main_event));
+        $this->emDebug("About to get data");
+
+        //there seems to be an issue with getdata running into PHP Fatal error:  Allowed memory size of 2147483648 bytes exhausted
+        $params = array(
+            'project_id'   => $origin_pid,
+            'return_format' => 'array',
+            'events'        => array($origin_main_event),
+            'records'       => array('77-0001-01', '77-0001-02','77-0001-03','77-0001-04','77-0001-05','77-0001-06'),
+            'fields'        => null
+        );
+        $data = REDCap::getData($params);
+
+        //$data = REDCap::getData($origin_pid, 'array', null, null, array($origin_main_event));
         $ctr = 0;
 
         // foreach row in first event
