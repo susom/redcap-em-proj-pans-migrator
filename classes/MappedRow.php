@@ -33,7 +33,7 @@ class MappedRow {
 
     private $data_errors;
 
-    public function __construct($ctr, $row, $id_field, $mrn_field, $mapper) {
+    public function __construct($ctr, $row, $id_field, $mrn_field, $mapper, $transmogrifier) {
         global $module;
 
         $this->ctr       = $ctr;
@@ -43,11 +43,11 @@ class MappedRow {
         $this->mrn_field = $mrn_field;
 
         $this->mapper    = $mapper;
-        $this->transmogrifier = Transmogrifier::getInstance($mapper);
+        $this->transmogrifier = $transmogrifier;
 
         $this->setIDs($this->origin_id);
 
-        $this->mapRow($row, $mapper);
+        $this->mapRow($row);
 
 
     }
@@ -300,10 +300,22 @@ class MappedRow {
         }
 
         $found = $this->checkIDExists($id, $target_id_field, $target_event);
+
         return $found;
 
     }
 
+
+    /**
+     * check if the id passed in parameter exists already for the given ID field
+     * TODO: convert to SQL rather than use a SQL search
+     *
+     *
+     * @param $id
+     * @param $target_id_field
+     * @param $target_event
+     * @return mixed|null
+     */
     function checkIDExists($id, $target_id_field, $target_event) {
         global $module;
 
@@ -312,6 +324,7 @@ class MappedRow {
             return null;
         }
 
+        /**
         $filter = "[" . REDCap::getEventNames(true, false, $target_event) . "][" . $target_id_field . "] = '$id'";
 
         // Use alternative passing of parameters as an associate array
@@ -322,15 +335,37 @@ class MappedRow {
             'filterLogic'   => $filter
         );
 
-
-
         $q = REDCap::getData($params);
         $records = json_decode($q, true);
 
-        //$module->emDebug($filter, $params, $records);
+        $module->emDebug($filter, $params, $records);
+*/
+        $sql = sprintf(
+            "select rd.record, rd.instance 
+from redcap_data rd
+where
+ rd.event_id = %d
+and rd.project_id = %d
+and rd.field_name = '%s'
+and rd.value = '%s'",
+            db_escape($target_event),
+            $module->getProjectId(),
+            db_escape($target_id_field),
+            db_escape($id)
+        );
+        //$module->emDebug("SQL: ". $sql);
+        $q = db_query($sql);
+        $row = db_fetch_assoc($q);
 
-        return ($records);
-
+        return $row;
+        /**
+        if ($row=db_fetch_assoc($q)) {
+            $module->emDebug("SQL found ".$row['record']);
+            return $row['record'];
+        } else {
+            return false;
+        }
+         */
     }
 
 
@@ -349,14 +384,19 @@ class MappedRow {
      * @param $row
      * @param $mapper
      */
-    function mapRow($row, $mapper) {
+    function mapRow($row) {
         global $module;
         //RepeatingForms saves by 'array' format, so format to be an array save
+
+
 
         //array_filter will filter out values of '0' so add function to force it to include the 0 values
         $row = array_filter($row, function($value) {
             return ($value !== null && $value !== false && $value !== '');
         });
+
+        $mapper = $this->mapper;
+        $modifier = $this->transmogrifier->getModifier();
 
         //make the save data array
         $main_data = array();
@@ -364,7 +404,13 @@ class MappedRow {
         $repeat_form_data = array();
         $error_msg = array();
 
+
         foreach ($row as $key => $val) {
+
+            if ($key == 'csf_collected') {
+                $module->emDebug("KEY IS $key". json_encode($val));
+
+            }
 
             //ignore all the field '_complete'
             if (preg_match('/_complete$/', $key)) {
@@ -407,59 +453,79 @@ class MappedRow {
 
             $target_field = $mapper[$key]['to_field'];
             $target_field_array = array();
+            $mod_field_array = array();
 
-            //check if there are any customizations
-//            if (!empty($mapper[$key]['custom'])) {
-//                $module->emDebug("$key CUSTOM : ". $mapper[$key]['custom']. " : " . $mapper[$key]['custom_1']. " : " . $mapper[$key]['custom_2']);
-//            }
+            //check if there are ny custom recoding needed
+            if (array_key_exists($key, $modifier)) {
+                foreach ($modifier[$key] as $target_field => $def) {
+                    //check if there are customizations to change that $target field
+                    switch($def['type']){
+                        case "splitName":
+                            // expecting two parameters
+                            $target_field_array = $this->transmogrifier->splitName($key,$val ); //this can have two fields so expect an array
+                            break;
+                        case "textToCheckbox":
+                            $target_field_array = $this->transmogrifier->textToCheckbox($key, $val);
+                            break;
+                        case "checkboxToCheckbox":
+                            $target_field_array = array_merge($target_field_array, $this->transmogrifier->checkboxToCheckbox($key, $val, $target_field, $def['map']));
+                            break;
+                        case "radioToCheckbox":
+                            $mod_field_array = $this->transmogrifier->radioToCheckbox($key, $val, $target_field, $def['map']);
+                            $target_field_array = array_merge($target_field_array,$mod_field_array);
+                            break;
+                        case "checkboxToRadio":
+                            $mod_field_array =  $this->transmogrifier->checkboxToRadio($key, $val, $target_field, $def['map']);
+                            $target_field_array = array_merge($target_field_array, $mod_field_array);
+                            break;
+                        case "recodeRadio":
+                            $target_field_array = $this->transmogrifier->recodeRadio($key, $val);
 
-            //check if there are customizations to change that $target field
+                            break;
+                        case "addToField":
+                            //target field is custom_1,
+                            //custom_2 is list of fields to concat
 
-            switch($mapper[$key]['custom']){
-                case "splitName":
-                    // expecting two parameters
-                    $target_field_array = $this->transmogrifier->splitName($key,$val ); //this can have two fields so expect an array
-                    break;
-                case "textToCheckbox":
-                    $val = $this->transmogrifier->textToCheckbox($key, $val);
-                    $target_field_array = $val;  //doing this to handle checkbox remaps if custom
-                    //array_merge($target_field_array, $val);
-                    break;
-                case "checkboxToCheckbox":
-                    $val = $this->transmogrifier->checkboxToCheckbox($key, $val);
-                    $target_field_array = $val;  //doing this to handle checkbox remaps if custom
-                    //array_merge($target_field_array, $val);
-                    break;
-                case "recodeRadio":
-                    $val = $this->transmogrifier->recodeRadio($key, $val);
-                    $target_field_array = $val;  //doing this to handle checkbox remaps if custom
-                    //array_merge($target_field_array, $val);
-                    break;
-                case "addToField":
-                    //target field is custom_1,
-                    //custom_2 is list of fields to concat
+                            $target_field_array = $this->transmogrifier->addToField($key, $row);
+                            break;
 
-                    $target_field_array = $this->transmogrifier->addToField($key, $row);
-                    break;
+                        default:
 
-                default:
+                            $target_field_array[$target_field] = $val;  //only need to do this if we are needing to upload to data fields
+                    }
 
-                    $target_field_array[$target_field] = $val;  //only need to do this if we are needing to upload to data fields
+
+                }
+            } else {
+                $target_field_array[$target_field] = $val;  //only need to do this if we are needing to upload to data fields
             }
+
 
             //$module->emDebug("=========> TARGET",$key,  $target_field_array);
 
             //if the event form is blank, it's the first event otherwise, it's the repeating event
             if (!empty($mapper[$key]['to_repeat_event'])) {
-                //$module->emDebug("Setting $key into REPEAT EVENT");
+                //$module->emDebug("Setting $key into REPEAT EVENT: " .  $mapper[$key][$to_repeat_event]);
                 // save to the repeat event
                 //this is going to a visit event
                 //$visit_data[$this->mapper[$key]['to_field']] = $val;
                 //$visit_data[($mapper[$key]['to_repeat_event'])][$mapper[$key]['to_field']] = $val;
 
-                //wrapped everything in array to handle multiple field (liek first and last name)
+                //wrapped everything in array to handle multiple field (like first and last name)
                 foreach ($target_field_array as $t_field => $t_val) {
                     //$visit_data[($mapper[$key]['to_repeat_event'])][$target_field] = $val;
+
+                    //for certain fields, we need to over lap multiple assignments
+                    //visit_sample gets coded over by 4 separate fields
+
+                    if (!empty($existing_val = $visit_data[($mapper[$key]['to_repeat_event'])][$t_field])) {
+                        $module->emDebug("VISIT DATA has existing value for $key ".$t_field);
+                        if ($t_field == 'visit_sample') {
+                            $module->emDebug("visit_sample will be collated with new value. ".json_encode($t_val));
+                            $t_val = array_merge($existing_val, $t_val);
+                        }
+                    }
+
                     $visit_data[($mapper[$key]['to_repeat_event'])][$t_field] = $t_val;
                 }
 
@@ -467,6 +533,8 @@ class MappedRow {
 
 
             } else if (!empty($mapper[$key]['to_form_instance'])) {
+                //TODO: delete got rid of instance, so this is no longer used
+
                 //if to_form_instance is blank, then it goes into the main event
                 //$module->emDebug("Setting $key to value of $val into REPEAT FORM. ".$this->mapper[$key]['from_fieldtype']. " to " . $mapper[$key]['to_form_instance']);
                 $instance_parts = explode(':', $mapper[$key]['to_form_instance']);
@@ -488,14 +556,12 @@ class MappedRow {
                     $main_data[$t_field] = $t_val;
                 }
 
-//                foreach ($target_field as $k => $v) {
-//                    $main_data[$k] = $v;
-//                }
+
             }
 
         }
 
-        //$module->emDebug($main_data);
+        //$module->emDebug($main_data, $visit_data);
 
 
         //check that there is data in main_data

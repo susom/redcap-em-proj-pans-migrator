@@ -42,8 +42,6 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
 
     /**
      *
-     *  TODO: Handle Archiving of CONSENT PDF:  Survey::archiveResponseAsPDF($record, $event_id, $form, $instance)
-     *
      * @param $file
      * @param $origin_pid
      * @param int $first_ct
@@ -65,9 +63,11 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
         //upload csv file that defines the mapping from old field to new field
         //$this->mapper = new Mapper($this->getProjectSetting('origin-pid'), $file);
         $this->mapper = new Mapper($origin_pid, $file);
+        $transmogrifier = new Transmogrifier($this->mapper->getMapper());
+
         //$this->mapper->printDictionary(); exit;
 
-
+        //change May 14: decided not to make episodes into repeating forms
         // Create the RepeatingForms for the project
         //name as 'rf_' + name of form (used in excel file to create variable name
         foreach ($this->mapper->getRepeatingForms() as $r_form) {
@@ -105,7 +105,7 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
                 $mrn_field       = $this->getProjectSetting('target-mrn-field');
 
                 try {
-                    $mrow = new MappedRow($ctr, $row, $origin_id_field, $mrn_field, $this->mapper->getMapper());
+                    $mrow = new MappedRow($ctr, $row, $origin_id_field, $mrn_field, $this->mapper->getMapper(), $transmogrifier);
                     if (!empty($mrow->getDataError())) {
                         $data_invalid[$record] = $mrow->getDataError();
                         $this->emError($mrow->getDataError());
@@ -154,7 +154,8 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
                     //id is  found (already exists), so only add as a visit.
                     //now check that visit ID already doesn't exist
 
-                    $record_id = $found[0][REDCap::getRecordIdField()];
+                    //$record_id = $found[0][REDCap::getRecordIdField()];
+                    $record_id = $found['record']; //with the new SQL version
                     $this->emDEbug("Row $ctr: Found record ($record_id) ".$mrow->getIBHID()." with count " . count($row));
                 }
 
@@ -192,7 +193,7 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
                     //VISIT ID not found
 
                     if (null !== ($mrow->getVisitData())) {
-                        $this->emDebug("Row $ctr: Starting Visit Event migration w count of " . sizeof($mrow->getVisitData()));
+                        $this->emDebug("Row $ctr: Starting Visit Event migration w count of " . sizeof($mrow->getVisitData())); //, $mrow->getVisitData());
 
                         foreach ($mrow->getVisitData() as $v_event => $v_data) {
                             $v_event_id = REDCap::getEventIdFromUniqueEvent($v_event);
@@ -206,11 +207,12 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
 
                             //bug where getNextinstanceId is returning stale values.
                             //$next_instance_orig = $rf_event->getNextInstanceId($record_id, $v_event_id);
-                            $next_instance = $rf_event->getNextInstanceIDForceReload($record_id, $v_event_id);
-                            //$next_instance = max ($next_instance_orig, $next_instance_forced);
-                            //$this->emDEbug("Row $ctr: record:" . $mrow->getOriginalID() . " nextinstnace is $next_instance, nextinstance_forced is $next_instance_forced using $next_instance");
+                            //$this->emDebug("Start getDAta nextInstance");
+                            //$next_instance = $rf_event->getNextInstanceIDForceReload($record_id, $v_event_id);
+                            //Switched to using SQL
+                            $next_instance = $rf_event->getNextInstanceIDSQL($record_id, $v_event_id);
 
-                            $this->emDebug("Row $ctr: record:" . $mrow->getOriginalID() . "REPEAT EVENT: $v_event Next instance is $next_instance in event $v_event_id");
+                            $this->emDebug("Row $ctr: record:" . $mrow->getOriginalID() . " REPEAT EVENT: $v_event Next instance is $next_instance in event $v_event_id");
                             $status = $rf_event->saveInstance($record_id, $v_data, $next_instance, $v_event_id);
 
                             if ($rf_event->last_error_message) {
@@ -253,11 +255,8 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
                     }
                 } else {
                     //VISIT ID found
-
-                    $found_event_instance_id = $visit_found[0]['redcap_repeat_instance'];
-                    $msg = "Row $ctr:  VISIT ".$mrow->getOriginalID()." FOUND in participant ID {$visit_found[0][REDCap::getRecordIdField()]} with repeat instance ID: " .
-                        $found_event_instance_id .
-                        " NOT entering data.";
+                    $msg = "Row $ctr:  VISIT ".$mrow->getOriginalID()." FOUND in participant ID {$visit_found['record']} with repeat instance ID: " .
+                        $visit_found['instance'] . ". NOT entering data.";
                     $this->emError($msg);
                     $this->logProblemRow($ctr, $row, $msg,  $not_entered);
                 }
@@ -267,8 +266,8 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
             unset($mrow);
         }
 
-        $this->emDEbug($not_entered);
-        $this->emDebug($data_invalid);
+        $this->emDEbug("NOT ENTERED: ".json_encode($not_entered));
+        $this->emDebug("INVALID DATA: " . json_encode($data_invalid));
         //printout the error file
         //file_put_contents("foo.csv", $not_entered);
 
@@ -292,7 +291,8 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
 
         $dd_mig = new DDMigrator($file, $origin_pid);
 
-        $dd_mig->updateDD();
+        //pass on the original data dictionary
+        $dd_mig->updateDDFromOriginal();
         //$dd_mig->print(100);
     }
 

@@ -16,7 +16,6 @@ class Mapper
     private $mapper;
     private $repeating_forms;
     private $header;
-    private $transmogrifier;
 
     /**
      * [treatment_other_ep1] => Array (
@@ -56,15 +55,6 @@ class Mapper
         //$module->emDebug($this->data_dict);
 
         $this->mapper = $this->createMapper($file);
-
-        try {
-            $this->transmogrifier = Transmogrifier::getInstance($this->mapper);
-        } catch (\Exception $e) {
-            die ("Unable to create mapper!  " . $e->getMessage());
-        }
-
-        //$module->emDebug($this->transmogrifier->getModifier()); exit;
-
 
         $this->repeating_forms = $this->getUniqueRepeatingForms();
 
@@ -126,6 +116,10 @@ class Mapper
 
                 $ptr = 0;
                 $from_field = trim($line[$ptr]);
+                if (empty($from_field)) {
+                    $from_field = "TEMP_";
+                }
+
                 foreach ($this->header as $col_title) {
                     //$module->emDebug($ptr. " : " . $from_field. " : " .  $col_title . " : " . $line[$ptr]);
 
@@ -161,11 +155,20 @@ class Mapper
 
                 $to_field = trim($data[$from_field]['to_field']);
                     //if ($to_field == 88) $module->emDebug("LINE TO FIELD $pointer: ", $to_field);
+                //if to_Field is missing in the data dictionary then report it as missing
+                $to_field_dd = $this->to_data_dict[$to_field];
+
+                if ($to_field_dd === null and $to_field !== '') {
+                    $data[$from_field]['dd_to_choice'] = "MISSING TO FIELD";
+                    //$module->emDebug("to field dd is ", $to_field_dd, $data);
+                }
 
                 $data[$from_field]['dd_from_fieldtype'] = $this->data_dict[$from_field]['field_type'];
                 $data[$from_field]['dd_from_form'] = $this->data_dict[$from_field]['form_name'];
                 $data[$from_field]['dd_to_form'] = $this->to_data_dict[$to_field]['form_name'];
                 $data[$from_field]['new_sequence'] = $this->to_data_dict[$to_field]['new_sequence'];
+
+
 
                 //if field_type is radio/checkbox/dropdwon highlight if the choices are different.
                 if (0 == strcmp('checkbox', $this->data_dict[$from_field]['field_type']) ||
@@ -195,6 +198,12 @@ class Mapper
                     }
                 }
 
+                //if the from_field was empty rename it to TEMP_to_Field
+                if ($from_field == "TEMP_") {
+                    $data[$from_field.$to_field] = $data[$from_field];
+                    unset($data[$from_field]);
+                }
+
                 $pointer++;
                 //$this->emDebug($data, $line);
                 //TODO: reset pointer to 5000, setting to 100 for testing
@@ -205,23 +214,6 @@ class Mapper
 
         return $data;
 
-
-    }
-
-    function printDictionary() {
-        global $module;
-        //TODO: internal commas are messing up the csv download
-        //$this->downloadCSVFile("foo.csv", $this->mapper);
-
-        $this->transmogrifier->print();;
-
-        echo '<br>============================================';
-        echo "<br>FIELD MAPPING";
-        echo "<br>". implode (",", $this->header);
-
-        foreach ($this->mapper as $row) {
-            echo "<br>". implode (",", $row);
-        }
 
     }
 
@@ -258,10 +250,6 @@ class Mapper
 
     function getMapper() {
         return $this->mapper;
-    }
-
-    function getTransmogrifier() {
-        return $this->transmogrifier;
     }
 
     function getRepeatingForms() {

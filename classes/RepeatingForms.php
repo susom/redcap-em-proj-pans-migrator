@@ -1,6 +1,8 @@
 <?php
 namespace Stanford\ProjPANSMigrator;
 
+/** @var ProjPANSMigrator $module */
+
 use \REDCap;
 use \Project;
 //use \Records;
@@ -457,6 +459,48 @@ class RepeatingForms
         return $max_id + 1;
     }
 
+    /**
+     * Rewrite of getting next instance id in repeating event (rather than getData)
+     *
+     * @param $record
+     * @param $event
+     * @return int|mixed|string
+     */
+    public function getNextInstanceIDSQL($record, $event) {
+        global $module;
+
+        $sql = sprintf("
+            select
+               rd.record, max(instance) as 'max_instance'
+            from
+                redcap_data rd
+            where
+                rd.record = '%s'
+            and rd.event_id = %d
+            and rd.project_id = %d",
+            db_escape($record),
+            db_escape($event),
+        $module->getProjectId()
+        );
+        //$module->emDebug("SQL: ". $sql);
+        $q = db_query($sql);
+
+        if ($row=db_fetch_assoc($q)) {
+            $instance = empty( $row['max_instance'] ) ? 0 : $row['max_instance'];
+
+            //max instance will be returned empty if n= 1 OR n=0
+            //so check the existence of $row['record'] to determine if 0 or 1
+            if (($instance == 0) && $row['record'] == $record) {
+                $instance = 1;
+            }
+        } else {
+            $instance = 0;
+        }
+        $result = $instance +1;
+
+        return $result;
+    }
+
 
     /**
      * FIXME: this sometimes give stale ID. temp fix add another method which force loads data again
@@ -520,19 +564,39 @@ class RepeatingForms
             $next_instance_id = $instance_id;
         }
 
-        $module->emDebug("Saving repeating form rec # $record_id in event $event_id");
+        $module->emDebug("Saving repeating form rec # $record_id in event $event_id with instance $next_instance_id");
         // Include instance and format into REDCap expected format
-        $new_instance[$record_id]['repeat_instances'][$event_id][$this->instrument][$next_instance_id] = $data;
 
+        //as of 9.9.1. this array saveData doesn't seem to save the instances number
+        $new_instance[$record_id]['repeat_instances'][$event_id][$this->instrument][$next_instance_id] = $data;
         $return = REDCap::saveData($this->pid, 'array', $new_instance);
         $this->dirty = true; //set object as dirty to prompt reload later.
+
+        /**
+        //try the json saveData
+        $proj = new \Project($this->pid);
+        $event_name = $proj->getUniqueEventNames($event_id);
+
+        $params = array(
+            REDCap::getRecordIdField() => $record_id,
+            'redcap_event_name' => $event_name,
+            'redcap_repeat_instance' => $next_instance_id,
+        );
+
+        $merged = array_merge($params, $data);
+
+        $return = REDCap::saveData($this->pid, 'json', json_encode(array($merged)));
+        //$this->emDebug($sub, data, $response,  "Save Response for count"); exit;
+*/
+
+
 
 //        $module->emDebug($return["errors"], $return['item_count']);
 
         if (!empty($return["errors"]) and ($return["item_count"] <= 0)) {
             $module->emError("Problem saving instance $next_instance_id for record $record_id in event $event_id in project $this->pid.", $return["errors"]);
-            $module->emError($new_instance);
-            $this->last_error_message = "Problem saving instance $next_instance_id for record $record_id in in event $event_id in project $this->pid. Returned: " . json_encode($return);
+            $module->emError(json_encode($new_instance));
+            $this->last_error_message = "Problem saving instance $next_instance_id for record $record_id in event $event_id in project $this->pid. Returned: " . json_encode($return);
             return false;
         } else {
             return true;

@@ -7,17 +7,18 @@ use \REDCap;
 
 class Transmogrifier {
 
-    private static $instance = null;
 
-
-
-    private $supported_custom = array("splitName", "textToCheckbox", "checkboxToCheckbox", "recodeRadio","addToField", "archivePDF");
+    private $supported_custom = array("splitName", "textToCheckbox", "checkboxToCheckbox", "recodeRadio","addToField",
+        "fixDate", "checkboxToRadio", "radioToCheckbox");
 
 
     // array with from_field and array as value with map
     private $modifier = array();
 
-    private function __construct($mapper) {
+    ///make a second set of modifiers to handle the second set of custom fields
+    private $modifier2 = array();
+
+    public function __construct($mapper) {
         global $module;
         foreach ($mapper as $k => $v) {
             if (!empty($v['custom'])) {
@@ -27,37 +28,92 @@ class Transmogrifier {
                     throw new Exception("Aborting migration!!!  Unsupported custom type for field [$k]: ".$v['custom'] );
                 }
 
-                $modifier[$k]["custom"] = $v['custom'];
-                $modifier[$k]["custom_1"] = $v['custom_1'];
-                $modifier[$k]["custom_2"] = $v['custom_2'];
+                //$modifier[$k]["custom"] = $v['custom'];
+                //$modifier[$k]["custom_1"] = $v['custom_1'];
+                //$modifier[$k]["custom_2"] = $v['custom_2'];
+
+                $foo = array(
+                    'type'         => $v['custom'],
+                    'target_field' => $v['custom_1'],
+                    'map_json'     => $v['custom_2']
+                );
 
                 switch($v['custom']){
                     case "splitName":
                         //split by '+'
-                        $modifier[$k]['fields'] = explode("+", $v['custom_1']);  //expecting '+' delimited
+                        $foo['target_field'] = explode("+", $v['custom_1']);  //expecting '+' delimited
+                        //$modifier[$k]['fields'] = explode("+", $v['custom_1']);  //expecting '+' delimited
                         break;
                     case "textToCheckbox":
-                        $modifier[$k]['fields'] = $v['custom_1']; //target field
-                        $modifier[$k]['mapping'] = self::formatCheckboxLookup($v['custom_2']);
+                        //$modifier[$k]['fields'] = $v['custom_1']; //target field
+                        //$modifier[$k]['mapping'] = self::formatCheckboxLookup($v['custom_2']);
+
+                        $foo['map'] = self::formatCheckboxLookup($v['custom_2']);
                         break;
                     case "checkboxToCheckbox":
-                        $modifier[$k]['fields'] = $v['custom_1']; //target field
-                        $modifier[$k]['mapping'] = json_decode($v['custom_2'], true);
+                        //$modifier[$k]['fields'] = $v['custom_1']; //target field
+                        //$modifier[$k]['mapping']   = json_decode($v['custom_2'], true);
+                        $foo['map'] = json_decode($v['custom_2'], true);
+                        break;
+                    case "radioToCheckbox":
+                        //$modifier[$k]['fields'] = $v['custom_1']; //target field
+                        //$modifier[$k]['mapping']   = json_decode($v['custom_2'], true);
+                        $foo['map'] = json_decode($v['custom_2'], true);
                         break;
                     case "recodeRadio":
-                        $modifier[$k]['fields'] = $v['custom_1']; //target field
-                        $modifier[$k]['mapping'] = json_decode($v['custom_2'], true);
+                        //$modifier[$k]['fields'] = $v['custom_1']; //target field
+                        //$modifier[$k]['mapping'] = json_decode($v['custom_2'], true);
+                        $foo['map'] = json_decode($v['custom_2'], true);
                         break;
                     case "addToField":
-                        $modifier[$k]['fields'] = $v['custom_1'];  //target field
-                        $modifier[$k]['mapping'] = explode("+", $v['custom_2']);  //expecting '+' delimited, concat both fields and enter into target
-                    default:
+                        //$modifier[$k]['fields'] = $v['custom_1'];  //target field
+                        //$modifier[$k]['mapping'] = explode("+", $v['custom_2']);  //expecting '+' delimited, concat both fields and enter into target
 
+                        $foo['map'] = explode("+", $v['custom_2']);  //expecting '+' delimited, concat both fields and enter into target
+                    default:
+                        $foo['map'] = json_decode($v['custom_2'], true);
                 }
+
+                $this->modifier[$k][$foo['target_field']] = $foo;
+
+            }
+
+            if (!empty($v['custom2'])) {
+                $modifier2[$k]["custom"] = $v['custom2'];
+                $modifier2[$k]["custom_1"] = $v['custom2_1'];
+                $modifier2[$k]["custom_2"] = $v['custom2_2'];
+
+                $foo2 = array(
+                    'type'         => $v['custom2'],
+                    'target_field' => $v['custom2_1'],
+                    'map_json'     => $v['custom2_2']
+                );
+
+                $module->emDebug("doing $k with ". $v['custom2']);
+                if (!in_array($v['custom2'],$this->supported_custom)) {
+                    $module->emDebug("doing $k with ". $v['custom2'] . " : ". $v['from_field'], $v);
+                    throw new Exception("Aborting migration!!!  Unsupported custom type for field [$k]: ".$v['custom2'] );
+                }
+
+
+                //as of may 14, thre is now a second set of custom fields
+                switch($v['custom2']){
+                    case "checkboxToCheckbox":
+                        $foo2['map'] = json_decode($v['custom2_2'], true);
+                        break;
+                    case "radioToCheckbox":
+                        $foo2['map'] = json_decode($v['custom2_2'], true);
+                        break;
+                    case "checkboxToRadio":
+                        $foo2['map'] = json_decode($v['custom2_2'], true);
+                        break;
+                    default:
+                        $foo2['map'] = json_decode($v['custom2_2'], true);
+                }
+                $this->modifier[$k][$foo2['target_field']] = $foo2;
             }
         }
 
-        $this->modifier = $modifier;
     }
 
 
@@ -148,21 +204,70 @@ class Transmogrifier {
      *
      *
      */
-    public function checkboxToCheckbox($from_field, $incoming_value) {
+    public function checkboxToCheckbox($from_field, $incoming_value, $target_field, $map) {
         global $module;
+
+        $return_array = null;
         //
-        $target_field = $this->modifier[$from_field]['fields'];
-        $outgoing_value = $this->modifier[$from_field]['mapping'];
+        //$target_field = $this->modifier[$from_field]['fields'];
+        //$map = $this->modifier[$from_field]['mapping'];
 
         foreach ($incoming_value as $code => $value) {
-            $outgoing[$outgoing_value[$code]] = $value;
+            if (!empty($map[$code])) {
+                $outgoing[$map[$code]] = $value;
+            }
         }
 
-        $return_array[$target_field]=$outgoing;
+        if (!empty($outgoing)) {
+            $return_array[$target_field] = $outgoing;
+        }
 
         return $return_array;
+    }
 
 
+    public function radioToCheckbox($from_field, $incoming_value, $target_field, $map) {
+        global $module;
+        $return_array = null;
+
+        //$target_field = $this->modifier[$from_field]['fields'];
+        //$map = $this->modifier[$from_field]['mapping'];  //array with checkbox  as key and the radio value as value
+
+        //if one, assign checkbox in map to 1
+        if ($incoming_value == 1) {
+            $outgoing[$map[$incoming_value]] = $incoming_value; //this should be one, but just in case interested in overwriting 0.
+        }
+
+        if (!empty($outgoing)) {
+            $return_array[$target_field] = $outgoing;
+        }
+
+        return $return_array;
+    }
+
+
+    /**
+     * Used for recoding checkbox values into radio
+     *
+     * map looks like 3 : 2
+     * So, if checkbox 3 is set to 1 (checked) then set radiobutton value to  2
+     *
+     *
+     */
+    public function checkboxToRadio($from_field, $incoming_value, $target_field, $map) {
+        global $module;
+        $return_array = null;
+
+        //$target_field = $this->modifier[$from_field]['fields'];
+        //$map = $this->modifier[$from_field]['mapping'];  //array with checkbox  as key and the radio value as value
+
+        foreach ($map as $code => $value) {
+            //check that the code is set to one in the incoming_value (checkbox value)
+            if ($incoming_value[$code] == "1") {
+                $return_array[$target_field] = $value;
+            }
+        }
+        return $return_array;
     }
 
     /**
@@ -217,14 +322,6 @@ class Transmogrifier {
 
     public function getModifier() {
         return $this->modifier;
-    }
-
-    public static function getInstance($mapper) {
-        if (!isset(self::$instance)) {
-            self::$instance = new Transmogrifier($mapper);
-        }
-
-        return self::$instance;
     }
 
 }
