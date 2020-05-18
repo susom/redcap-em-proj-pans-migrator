@@ -112,17 +112,21 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
         $data = REDCap::getData($params);
 
         //$data = REDCap::getData($origin_pid, 'array', null, null, array($origin_main_event));
-        $ctr = 0;
+        //$ctr = 0;
+        $ctr = $first_ct;
 
         // foreach row in first event
         foreach($data as $record => $event) {
+
+            /**
             if ($ctr < $first_ct) {
                 $ctr++;
                 continue;
             }
+            */
 
             //for testing if we have a test_ct set then stop
-            if ((null !== $test_ct) && ($ctr > $test_ct)) break;
+            //if ((null !== $test_ct) && ($ctr > $test_ct)) break;
 
 
             echo "<br> Analyzing row $ctr: RECORD: $record ";
