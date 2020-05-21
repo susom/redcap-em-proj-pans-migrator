@@ -41,7 +41,9 @@ class Transmogrifier {
                 switch($v['custom']){
                     case "splitName":
                         //split by '+'
-                        $foo['target_field'] = explode("+", $v['custom_1']);  //expecting '+' delimited
+                        $foo['target_field'] = $k;
+
+                        $foo['map'] = explode("+", $v['custom_1']);  //expecting '+' delimited
                         //$modifier[$k]['fields'] = explode("+", $v['custom_1']);  //expecting '+' delimited
                         break;
                     case "textToCheckbox":
@@ -151,7 +153,7 @@ class Transmogrifier {
         $middle = $matches[0]['middle'];
         $last = $matches[0]['last'];
 
-        $target_field = $this->modifier[$from_field]['fields'];
+        $target_field = $this->modifier[$from_field][$from_field]['map'];
 
         $return_array[$target_field[0]] = trim($first . " " . $middle);
         $return_array[$target_field[1]] = $last;
