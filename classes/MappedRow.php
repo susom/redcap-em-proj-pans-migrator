@@ -409,8 +409,7 @@ and rd.value = '%s'",
         foreach ($row as $key => $val) {
 
             if ($key == 'csf_collected') {
-                $module->emDebug("KEY IS $key". json_encode($val));
-
+                //$module->emDebug("KEY IS $key ". json_encode($val));
             }
 
             //ignore all the field '_complete'
