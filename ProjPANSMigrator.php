@@ -247,7 +247,7 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
 
 
                             $status = $rf_event->saveInstance($record_id, $v_data, $next_instance, $v_event_id);
-                            $this->emDebug("Row $ctr: record:" . $mrow->getOriginalID() . " REPEAT EVENT: $v_event Next instance is $next_instance in event $v_event_id and status is  $status");
+                            $this->emDebug("Row $ctr: record:" . $mrow->getOriginalID() . " REPEAT EVENT: $v_event Next instance is $next_instance in event $v_event_id and status is  $status"); //, $v_data);
                             if (($status === false) && $rf_event->last_error_message) {
                                 $this->emError("Row $ctr: There was an error saving record $record_id: in event <$v_event_id>", $rf_event->last_error_message);
                                 $this->logProblemRow($ctr, $row, $rf_event->last_error_message, $not_entered);

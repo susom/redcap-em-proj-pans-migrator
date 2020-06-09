@@ -215,8 +215,12 @@ class Transmogrifier {
         //$map = $this->modifier[$from_field]['mapping'];
 
         foreach ($incoming_value as $code => $value) {
-            if (!empty($map[$code])) {
-                $outgoing[$map[$code]] = $value;
+            if (isset($map[$code])) {  //empty won't work for 0
+                //handle cases where it's coding to the same value.
+                //if the value already is 1, then don't reset
+                if (empty($outgoing[$map[$code]])) {  //either not there or equal to 0
+                    $outgoing[$map[$code]] = $value;
+                }
             }
         }
 

@@ -468,15 +468,15 @@ and rd.value = '%s'",
                             $target_field_array = $this->transmogrifier->textToCheckbox($key, $val);
                             break;
                         case "checkboxToCheckbox":
-                            $target_field_array = array_merge($target_field_array, $this->transmogrifier->checkboxToCheckbox($key, $val, $target_field, $def['map']));
+                            $target_field_array = array_replace($target_field_array, $this->transmogrifier->checkboxToCheckbox($key, $val, $target_field, $def['map']));
                             break;
                         case "radioToCheckbox":
                             $mod_field_array = $this->transmogrifier->radioToCheckbox($key, $val, $target_field, $def['map']);
-                            $target_field_array = array_merge($target_field_array,$mod_field_array);
+                            $target_field_array = array_replace($target_field_array,$mod_field_array);
                             break;
                         case "checkboxToRadio":
                             $mod_field_array =  $this->transmogrifier->checkboxToRadio($key, $val, $target_field, $def['map']);
-                            $target_field_array = array_merge($target_field_array, $mod_field_array);
+                            $target_field_array = array_replace($target_field_array, $mod_field_array);
                             break;
                         case "recodeRadio":
                             $target_field_array = $this->transmogrifier->recodeRadio($key, $val);
@@ -522,7 +522,7 @@ and rd.value = '%s'",
                         $module->emDebug("VISIT DATA has existing value for $key ".$t_field);
                         if ($t_field == 'visit_sample') {
                             $module->emDebug("visit_sample will be collated with new value. ".json_encode($t_val));
-                            $t_val = array_merge($existing_val, $t_val);
+                            $t_val = array_replace($existing_val, $t_val);
                         }
                     }
 
