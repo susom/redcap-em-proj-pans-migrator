@@ -388,7 +388,8 @@ and rd.value = '%s'",
         global $module;
         //RepeatingForms saves by 'array' format, so format to be an array save
 
-
+        //new change: if visit id is 1, then map to the baseline event (regardless of entry in 'to_repeat_event"
+        $visit_id = $row['visit_id'];
 
         //array_filter will filter out values of '0' so add function to force it to include the 0 values
         $row = array_filter($row, function($value) {
@@ -504,7 +505,8 @@ and rd.value = '%s'",
             //$module->emDebug("=========> TARGET",$key,  $target_field_array);
 
             //if the event form is blank, it's the first event otherwise, it's the repeating event
-            if (!empty($mapper[$key]['to_repeat_event'])) {
+            //new update, if the visit id is 01, then map it to first event (regardless of entry in to_repeat_event
+            if ((!empty($mapper[$key]['to_repeat_event'])) && ($visit_id !== '1')) {
                 //$module->emDebug("Setting $key into REPEAT EVENT: " .  $mapper[$key][$to_repeat_event]);
                 // save to the repeat event
                 //this is going to a visit event
@@ -548,6 +550,7 @@ and rd.value = '%s'",
                 $repeat_form_data[$instance_parts[0]][$instance_parts[1]][$instance_parts[0]."_visit_id"] = $this->origin_id;
 
             } else {
+                //this is for the main event
                 foreach ($target_field_array as $t_field => $t_val) {
                     //$main_data[$target_field] = $val;
                     if ($t_field==='mrn') {
