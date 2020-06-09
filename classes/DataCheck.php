@@ -10,7 +10,8 @@ class DataCheck
     private static $re_missed_school = '/(?<find>\b([0-9]|1[0-9]|20)\b)/';
 
     private static $checker = array(
-        "missed_school"=>'/(?<find>\b([0-9]|1[0-9]|20)\b)/',
+        //June: converted to text so that Jaynelle can convert later
+        //"missed_school"=>'/(?<find>\b([0-9]|1[0-9]|20)\b)$/',  //only allow numbers (since it's an integer field
         'sympsib_v2'   => '/(?<find>\b([01]\b))/',
         'gi_new'       => '/(?<find>^([0-9]|[1-9]\d|100)$)/'
     );

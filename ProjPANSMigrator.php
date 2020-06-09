@@ -245,10 +245,10 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
                             //Switched to using SQL
                             $next_instance = $rf_event->getNextInstanceIDSQL($record_id, $v_event_id);
 
-                            $this->emDebug("Row $ctr: record:" . $mrow->getOriginalID() . " REPEAT EVENT: $v_event Next instance is $next_instance in event $v_event_id");
-                            $status = $rf_event->saveInstance($record_id, $v_data, $next_instance, $v_event_id);
 
-                            if ($rf_event->last_error_message) {
+                            $status = $rf_event->saveInstance($record_id, $v_data, $next_instance, $v_event_id);
+                            $this->emDebug("Row $ctr: record:" . $mrow->getOriginalID() . " REPEAT EVENT: $v_event Next instance is $next_instance in event $v_event_id and status is  $status");
+                            if (($status === false) && $rf_event->last_error_message) {
                                 $this->emError("Row $ctr: There was an error saving record $record_id: in event <$v_event_id>", $rf_event->last_error_message);
                                 $this->logProblemRow($ctr, $row, $rf_event->last_error_message, $not_entered);
 
@@ -273,9 +273,9 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
                         $this->emDebug("Repeat Form instrument $form_name ");
                         foreach ($instances as $form_instance => $form_data) {
                             $rf_form = ${"rf_" . $form_name};
-                            $this->emDebug("Row $ctr: Working on $form_name with $rf_form on instance number ". $form_instance . " Adding as $next_instance");
 
                             $next_instance = $rf_form->getNextInstanceId($record_id, $target_main_event);
+                            $this->emDebug("Row $ctr: Working on $form_name with $rf_form on instance number ". $form_instance . " Adding as $next_instance");
 
                             $rf_form->saveInstance($record_id, $form_data, $next_instance, $target_main_event);
 
