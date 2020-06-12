@@ -216,11 +216,11 @@ class MappedRow {
                 $this->legacy_visit_id_field = $module->getProjectSetting('visit-hc-id');
                 break;
             case "118": //CYTOF
-                $this->legacy_main_id_field = $module->getProjectSetting('target-cytof-id'); //'id_pans'
+                $this->legacy_main_id_field = $module->getProjectSetting('target-cytof-id'); //'id_cytof'
                 $this->legacy_visit_id_field = $module->getProjectSetting('visit-cytof-id');
                 break;
             case "126": //MONOCYTE
-                $this->legacy_main_id_field = $module->getProjectSetting('target-monocyte-id'); //'id_pans'
+                $this->legacy_main_id_field = $module->getProjectSetting('target-monocyte-id'); //'id_monocyte'
                 $this->legacy_visit_id_field = $module->getProjectSetting('visit-monocyte-id');
                 break;
             default;
@@ -233,39 +233,6 @@ class MappedRow {
     }
 
 
-    function checkMRNExistsInMain() {
-        global $module;
-
-        //TODO: Uses redcap filter which can't handle wilds. Using option 1 (see setMRN method)
-        //PANS project stores mrn with hyphen between 7th and 8th digi
-        //option 1: add a hyphen in filter serach
-        //option 2: use sql query to search redcap_pdata
-        //option 3: store all stripped MRNs and array_key search
-
-        $mrn = $this->mrn;
-
-        if (empty($mrn)) {
-            throw new \Exception("MRN is missing for record : ".$this->origin_id);
-        }
-
-        $target_event = $module->getProjectSetting('main-config-event-id');
-        $mrn_field = $module->getProjectSetting('target-mrn-field');
-
-        $filter = "[" . REDCap::getEventNames(true, false, $target_event) . "][" . $mrn_field . "] = '$mrn'";
-
-        // Use alternative passing of parameters as an associate array
-        $params = array(
-            'return_format' => 'json',
-            'events'        =>  $target_event,
-            'fields'        => array( REDCap::getRecordIdField()),
-            'filterLogic'   => $filter
-        );
-
-        $q = REDCap::getData($params);
-        $records = json_decode($q, true);
-        //$module->emDEbug("Search for ".$this->mrn. "came up with this", $records);
-        return ($records);
-    }
 
     function checkIDExistsInMain() {
         global $module;
@@ -282,7 +249,14 @@ class MappedRow {
         } else {
             //otherwise use MRN to search
             $module->emDebug('Protocol is '. $this->protocol_id . " so using MRN to locate: ". $this->mrn);
-            $found = $this->checkMRNExistsInMain();
+            $mrn_field = $module->getProjectSetting('target-mrn-field');
+            //$found = $this->checkMRNExistsInMain();
+            $found = $this->checkIDExists($this->mrn, $mrn_field, $target_event);
+
+            if (empty($found)) {
+                //change request: if monocyte or cytof and not found, use protocol id and subject_id to locate ($this->legacy_main_id_field)
+                $found = $this->checkIDExists($id, $target_id_field, $target_event);
+            }
 
         }
         return $found;
@@ -504,8 +478,10 @@ and rd.value = '%s'",
             //$module->emDebug("=========> TARGET",$key,  $target_field_array);
 
             //if the event form is blank, it's the first event otherwise, it's the repeating event
-            //new update, if the visit id is 01, then map it to first event (regardless of entry in to_repeat_event
-            if ((!empty($mapper[$key]['to_repeat_event'])) && ($visit_id !== '1')) {
+            //new update, if the visit id is 01 AND PANS, then map it to first event (regardless of entry in to_repeat_event
+            $pans_first_visit = ($visit_id == '1') && ($this->protocol_id == '77');
+            if ((!empty($mapper[$key]['to_repeat_event'])) && (!$pans_first_visit)) {
+            //if ((!empty($mapper[$key]['to_repeat_event'])) && ($visit_id !== '1')) {
                 //$module->emDebug("Setting $key into REPEAT EVENT: " .  $mapper[$key][$to_repeat_event]);
                 // save to the repeat event
                 //this is going to a visit event

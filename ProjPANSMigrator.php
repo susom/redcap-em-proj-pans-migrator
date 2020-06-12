@@ -99,8 +99,6 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
             $record_list[] = $r_data[$i][$this->getProjectSetting('origin-main-id')];
         }
 
-        $this->emDebug($record_list);
-
         //there seems to be an issue with getdata running into PHP Fatal error:  Allowed memory size of 2147483648 bytes exhausted
         $params = array(
             'project_id'   => $origin_pid,
@@ -209,7 +207,7 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
 
                     if (isset($return["errors"]) and !empty($return["errors"])) {
                         $msg = "Row $ctr: Not able to save project data for record $record_id with original id: " . $mrow->getOriginalID(). implode(" / ",$return['errors']);
-                        $this->emError($msg, $return['errors'], $temp_instance);
+                        $this->emError($msg, $return['errors']);//, $temp_instance);
                         $this->logProblemRow($ctr, $row, $msg,  $not_entered);
                     } else {
                         $this->emLog("Row $ctr: Successfully saved main event data for record " . $mrow->getOriginalID() . " with new id $record_id");
@@ -299,19 +297,25 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
             unset($mrow);
         }
 
-        $this->emDEbug("NOT ENTERED: ".json_encode($not_entered));
-        $this->emDebug("INVALID DATA: " . json_encode($data_invalid));
+        if (!empty($not_entered)) {
+            $this->emDEbug("NOT ENTERED: ".json_encode($not_entered));
+
+            echo "<br>PROBLEM ROWS: <pre>";
+            print_r($not_entered);
+            echo "</pre>";
+        }
+        if (!empty($data_invalid)) {
+            $this->emDebug("INVALID DATA: " . json_encode($data_invalid));
+            echo "<br>INVALID DATA: <pre>";
+            print_r($data_invalid);
+            echo "</pre>";
+        }
         //printout the error file
         //file_put_contents("foo.csv", $not_entered);
 
 
         //exit;
-        echo "<br>INVALID DATA: <pre>";
-        print_r($data_invalid);
-        echo "</pre>";
-        echo "PROBLEM ROWS: <pre>";
-        print_r($not_entered);
-        echo "</pre>";
+
 
 
         //$this->downloadCSVFile("troublerows.csv",$not_entered);
