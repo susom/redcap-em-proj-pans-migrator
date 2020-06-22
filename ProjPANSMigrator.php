@@ -177,7 +177,7 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
                     //not found so create a new record ID
 
                     //get a new record ID in the format S_0001
-                    $record_id = $this->getNextId($target_main_event,"S", 4);
+                    $record_id = $this->getNextId($target_main_event, "S", 4);
                     $this->emDebug("Row $ctr: Starting migration of $record to new id: $record_id");
 
                 } else {
@@ -187,7 +187,7 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
 
                     //$record_id = $found[0][REDCap::getRecordIdField()];
                     $record_id = $found['record']; //with the new SQL version
-                    $this->emDEbug("Row $ctr: Found record ($record_id) ".$mrow->getIBHID()." with count " . count($row));
+                    $this->emDEbug("Row $ctr: Found record ($record_id) " . $mrow->getIBHID() . " with count " . count($row));
                 }
 
                 //HANDLE MAIN EVENT DATA
@@ -206,9 +206,9 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
                     $return = REDCap::saveData('array', $temp_instance);
 
                     if (isset($return["errors"]) and !empty($return["errors"])) {
-                        $msg = "Row $ctr: Not able to save project data for record $record_id with original id: " . $mrow->getOriginalID(). implode(" / ",$return['errors']);
+                        $msg = "Row $ctr: Not able to save project data for record $record_id with original id: " . $mrow->getOriginalID() . implode(" / ", $return['errors']);
                         $this->emError($msg, $return['errors']);//, $temp_instance);
-                        $this->logProblemRow($ctr, $row, $msg,  $not_entered);
+                        $this->logProblemRow($ctr, $row, $msg, $not_entered);
                     } else {
                         $this->emLog("Row $ctr: Successfully saved main event data for record " . $mrow->getOriginalID() . " with new id $record_id");
                     }
@@ -219,79 +219,83 @@ class ProjPANSMigrator extends \ExternalModules\AbstractExternalModule
                 //HANDLE VISIT EVENT DATA
                 //check that the visit ID doesn't already exist in the  $target_visit_id ex: 'id_pans_visit'
                 //[filterLogic] => [visit_arm_1][id_pans_visit] = '77-0148-02'
+                //June 2020: also check that it is not visit 01. If 01, then don't bother with Visit data
+
                 $visit_found = $mrow->checkIDExistsInVisit();
-                if (empty($visit_found)) {
-                    //VISIT ID not found
+                if ($mrow->firstVisit() !== true) {
 
-                    if (null !== ($mrow->getVisitData())) {
-                        $this->emDebug("Row $ctr: Starting Visit Event migration w count of " . sizeof($mrow->getVisitData())); //, $mrow->getVisitData());
+                    if (empty($visit_found)) {
+                        //VISIT ID not found
 
-                        foreach ($mrow->getVisitData() as $v_event => $v_data) {
-                            $v_event_id = REDCap::getEventIdFromUniqueEvent($v_event);
+                        if (null !== ($mrow->getVisitData())) {
+                            $this->emDebug("Row $ctr: Starting Visit Event migration w count of " . sizeof($mrow->getVisitData())); //, $mrow->getVisitData());
 
-                            if (empty($v_event_id)) {
-                                $msg = "Row $ctr: EVENT ID was not found: $v_event_id from event name $v_event";
-                                $this->emError($msg);
-                                $this->logProblemRow($ctr, $row, $msg, $not_entered);
-                                continue;
+                            foreach ($mrow->getVisitData() as $v_event => $v_data) {
+                                $v_event_id = REDCap::getEventIdFromUniqueEvent($v_event);
+
+                                if (empty($v_event_id)) {
+                                    $msg = "Row $ctr: EVENT ID was not found: $v_event_id from event name $v_event";
+                                    $this->emError($msg);
+                                    $this->logProblemRow($ctr, $row, $msg, $not_entered);
+                                    continue;
+                                }
+
+                                //bug where getNextinstanceId is returning stale values.
+                                //$next_instance_orig = $rf_event->getNextInstanceId($record_id, $v_event_id);
+                                //$this->emDebug("Start getDAta nextInstance");
+                                //$next_instance = $rf_event->getNextInstanceIDForceReload($record_id, $v_event_id);
+                                //Switched to using SQL
+                                $next_instance = $rf_event->getNextInstanceIDSQL($record_id, $v_event_id);
+
+
+                                $status = $rf_event->saveInstance($record_id, $v_data, $next_instance, $v_event_id);
+                                $this->emDebug("Row $ctr: record:" . $mrow->getOriginalID() . " REPEAT EVENT: $v_event Next instance is $next_instance in event $v_event_id and status is  $status"); //, $v_data);
+                                if (($status === false) && $rf_event->last_error_message) {
+                                    $this->emError("Row $ctr: There was an error saving record $record_id: in event <$v_event_id>", $rf_event->last_error_message);
+                                    $this->logProblemRow($ctr, $row, $rf_event->last_error_message, $not_entered);
+
+                                }
+
                             }
-
-                            //bug where getNextinstanceId is returning stale values.
-                            //$next_instance_orig = $rf_event->getNextInstanceId($record_id, $v_event_id);
-                            //$this->emDebug("Start getDAta nextInstance");
-                            //$next_instance = $rf_event->getNextInstanceIDForceReload($record_id, $v_event_id);
-                            //Switched to using SQL
-                            $next_instance = $rf_event->getNextInstanceIDSQL($record_id, $v_event_id);
+                        } else {
+                            $msg = "Row $ctr: Visit Event had no data to enter for " . $mrow->getOriginalID();
+                            $this->emError($msg);
+                            $this->logProblemRow($ctr, $row, $msg, $not_entered);
+                        }
 
 
-                            $status = $rf_event->saveInstance($record_id, $v_data, $next_instance, $v_event_id);
-                            $this->emDebug("Row $ctr: record:" . $mrow->getOriginalID() . " REPEAT EVENT: $v_event Next instance is $next_instance in event $v_event_id and status is  $status"); //, $v_data);
-                            if (($status === false) && $rf_event->last_error_message) {
-                                $this->emError("Row $ctr: There was an error saving record $record_id: in event <$v_event_id>", $rf_event->last_error_message);
-                                $this->logProblemRow($ctr, $row, $rf_event->last_error_message, $not_entered);
+                        //HANDLE REPEATING FORM DATA
+                        //I"m making an assumption here that there will be no repeating form data without a visit data
 
+                        //save the repeat form
+                        //$this->emDebug("Row $ctr: Starting Repeat Form migration w count of " . sizeof($mrow->getRepeatFormData()), $mrow->getRepeatFormData());
+
+                        //xxyjl todo: check if the visit_id already exists?
+                        foreach ($mrow->getRepeatFormData() as $form_name => $instances) {
+                            $this->emDebug("Repeat Form instrument $form_name ");
+                            foreach ($instances as $form_instance => $form_data) {
+                                $rf_form = ${"rf_" . $form_name};
+
+                                $next_instance = $rf_form->getNextInstanceId($record_id, $target_main_event);
+                                $this->emDebug("Row $ctr: Working on $form_name with $rf_form on instance number " . $form_instance . " Adding as $next_instance");
+
+                                $rf_form->saveInstance($record_id, $form_data, $next_instance, $target_main_event);
+
+                                //if ($rf_form->last_error_message) {
+                                if ($rf_form === false) {
+                                    $this->emError("Row $ctr: There was an error: ", $rf_form->last_error_message);
+                                    $this->logProblemRow($ctr, $row, $rf_form->last_error_message, $not_entered);
+                                }
                             }
-
                         }
                     } else {
-                        $msg = "Row $ctr: Visit Event had no data to enter for " . $mrow->getOriginalID();
+                        //VISIT ID found
+                        $msg = "Row $ctr:  VISIT " . $mrow->getOriginalID() . " FOUND in participant ID {$visit_found['record']} with repeat instance ID: " .
+                            $visit_found['instance'] . ". NOT entering data.";
                         $this->emError($msg);
                         $this->logProblemRow($ctr, $row, $msg, $not_entered);
                     }
-
-
-                    //HANDLE REPEATING FORM DATA
-                    //I"m making an assumption here that there will be no repeating form data without a visit data
-
-                    //save the repeat form
-                    //$this->emDebug("Row $ctr: Starting Repeat Form migration w count of " . sizeof($mrow->getRepeatFormData()), $mrow->getRepeatFormData());
-
-                    //xxyjl todo: check if the visit_id already exists?
-                    foreach ($mrow->getRepeatFormData() as $form_name => $instances) {
-                        $this->emDebug("Repeat Form instrument $form_name ");
-                        foreach ($instances as $form_instance => $form_data) {
-                            $rf_form = ${"rf_" . $form_name};
-
-                            $next_instance = $rf_form->getNextInstanceId($record_id, $target_main_event);
-                            $this->emDebug("Row $ctr: Working on $form_name with $rf_form on instance number ". $form_instance . " Adding as $next_instance");
-
-                            $rf_form->saveInstance($record_id, $form_data, $next_instance, $target_main_event);
-
-                            //if ($rf_form->last_error_message) {
-                            if ($rf_form===false) {
-                                $this->emError("Row $ctr: There was an error: ", $rf_form->last_error_message);
-                                $this->logProblemRow($ctr, $row, $rf_form->last_error_message,  $not_entered);
-                            }
-                        }
-                    }
-                } else {
-                    //VISIT ID found
-                    $msg = "Row $ctr:  VISIT ".$mrow->getOriginalID()." FOUND in participant ID {$visit_found['record']} with repeat instance ID: " .
-                        $visit_found['instance'] . ". NOT entering data.";
-                    $this->emError($msg);
-                    $this->logProblemRow($ctr, $row, $msg,  $not_entered);
                 }
-
             }
             $ctr++;
             unset($mrow);

@@ -18,7 +18,7 @@ class MappedRow {
     private $ibh_id;      //protocol+sub ex: 77-1234
     private $protocol_id;  //protocolid   ex: 77
     private $subject_id;   // subject     ex: 1234
-    private $visit_id;     // viist       ex: 01
+    private $visit_id;     // visit       ex: 01
 
     private $legacy_main_id_field;  //keep copy of original ID
     private $legacy_visit_id_field;  //keep copy of original visit ID for visit event
@@ -51,140 +51,6 @@ class MappedRow {
 
 
     }
-
-    /**
-    public function processRow() {
-        global $module;
-        $row_problems = array();
-
-        $target_main_event = $module->getProjectSetting('main-config-event-id');
-
-        //check whether the id_pans id (ex: 77-0148) already exists in which case only handle the visit portion of the row
-        //$filter = "[" . REDCap::getEventNames(true, false,$target_main_event) . "][" . $target_id . "] = '$id'";
-        //xxyjl $found = $this->checkIDExists($id, $target_id,$target_main_event);
-        try {
-            $found = $this->checkIDExistsInMain();
-        } catch (\Exception $e) {
-            $msg = 'Unable to process row $ctr: '. $e->getMessage();
-            $module->emError($msg);
-            die ($msg);  // EM config is not set properly. Just abandon ship;
-        }
-
-
-        //Set the paritcipant ID
-        if (empty($found)) {
-            $module->emDEbug("EMPTY: {$this->getOriginalID()} NOT FOUND");
-            //not found so create a new record ID
-
-            //get a new record ID in the format S_0001
-            $record_id = $module->getNextId($target_main_event,"S", 4);
-            $module->emDebug("Row $this->ctr: Starting migration to new id: $this->origin_id");
-
-        } else {
-            //$this->emDEbug("FOUND", $found);
-            //id is  found (already exists), so only add as a visit.
-            //now check that visit ID already doesn't exist
-
-            $record_id = $found[0][REDCap::getRecordIdField()];
-            $module->emDEbug("Row $this->ctr: Found record ($record_id) ".$this->getIBHID()." with count " . count($this->row));
-        }
-
-        //HANDLE MAIN EVENT DATA
-        //if (empty($found)) { //or if proctocl is 77 and visit id is 01 (overwrite in that case?
-        if ($this->getVisitID() == '01') {  // and 77??
-
-            if (null !== ($this->getMainData())) {
-                //save the main event data
-                //$return = REDCap::saveData('json', json_encode(array($main_data)));
-                //RepeatingForms uses array. i think expected format is [id][event] = $data
-                $temp_instance[$record_id][$module->getProjectSetting('main-config-event-id')] = $this->getMainData();
-
-                //$module->emDebug($temp_instance);
-                $return = REDCap::saveData('array', $temp_instance);
-
-                if (isset($return["errors"]) and !empty($return["errors"])) {
-                    $msg = "Not able to save project data for record $record_id with original id: " . $this->getOriginalID(). implode(" / ",$return['errors']);
-                    $module->emError($msg, $return['errors']);
-                    $module->logProblemRow($ctr, $row, $msg,  $not_entered);
-                } else {
-                    $module->emLog("Successfully saved main event data for record " . $this->getOriginalID() . " with new id $record_id");
-                }
-            }
-        }
-
-
-        //HANDLE VISIT EVENT DATA
-        //check that the visit ID doesn't already exist in the  $target_visit_id ex: 'id_pans_visit'
-        //[filterLogic] => [visit_arm_1][id_pans_visit] = '77-0148-02'
-        $visit_found = $this->checkIDExistsInVisit();
-        if (empty($visit_found)) {
-            //VISIT ID not found
-
-            if (null !== ($this->getVisitData())) {
-                $module->emDebug("Row $ctr: Starting Visit Event migration w count of " . sizeof($this->getVisitData()));
-
-                foreach ($this->getVisitData() as $v_event => $v_data) {
-                    $v_event_id = REDCap::getEventIdFromUniqueEvent($v_event);
-                    //$next_instance = $rf_event->getNextInstanceId($record_id, $v_event_id);
-
-                    //$module->emDebug("REPEAT EVENT: $v_event Next instance is $next_instance");
-                    $status = $rf_event->saveInstance($record_id, $v_data, $next_instance, $v_event_id);
-
-                    if ($rf_event->last_error_message) {
-                        $module->emError("There was an error: ", $rf_event->last_error_message);
-                        $module->logProblemRow($ctr, $row, $rf_event->last_error_message,  $not_entered);
-
-                    }
-                }
-            } else {
-                $msg = "Visit Event had no data to enter for " . $this->getOriginalID();
-                $module->emError($msg);
-                $module->logProblemRow($this->ctr, $row, $msg, $not_entered);
-            }
-
-
-            //HANDLE REPEATING FORM DATA
-            //I"m making an assumption here that there will be no repeating form data without a visit data
-
-            //save the repeat form
-            //$module->emDebug("Row $ctr: Starting Repeat Form migration w count of " . sizeof($mrow->getRepeatFormData()), $mrow->getRepeatFormData());
-
-            //xxyjl todo: check if the visit_id already exists?
-            foreach ($this->getRepeatFormData() as $form_name => $instances) {
-                $module->emDebug("Repeat Form instrument $form_name ");
-                foreach ($instances as $form_instance => $form_data) {
-                    $rf_form = ${"rf_" . $form_name};
-                    $module->emDebug("Working on $form_name with $rf_form on instance number ". $form_instance . " Adding as $next_instance");
-
-                    $next_instance = $rf_form->getNextInstanceId($record_id, $target_main_event);
-
-                    $rf_form->saveInstance($record_id, $form_data, $next_instance, $target_main_event);
-
-                    if ($rf_form->last_error_message) {
-                        $module->emError("There was an error: ", $rf_form->last_error_message);
-                        $module->logProblemRow($ctr, $row, $rf_form->last_error_message,  $not_entered);
-
-                    }
-
-                }
-
-            }
-        } else {
-            //VISIT ID found
-
-            $found_event_instance_id = $visit_found[0]['redcap_repeat_instance'];
-            $msg = "Row $ctr:  VISIT ".$this->getOriginalID()." FOUND in participant ID {$visit_found[0][REDCap::getRecordIdField()]} with repeat instance ID: " .
-                $found_event_instance_id .
-                " NOT entering data.";
-            $module->emError($msg);
-            //* $module->logProblemRow($ctr, $row, $msg,  $not_entered);
-        }
-
-
-    }
-
-     */
-
 
 
     function setIDs($origin_id) {
@@ -244,7 +110,8 @@ class MappedRow {
             throw new EMConfigurationException("<br><br>EM Config is not set correctly!!  ID:[ $target_id_field ] or EVENT: [ $target_event ] not set. Please RECHECK your EM Config for all mandatory fields");
         }
 
-        if ($this->protocol_id == '77') {
+        //if pans or hc, check if the id already exists in the baseline.
+        if (($this->protocol_id == '77') || ($this->protocol_id == '111')) {
             $found = $this->checkIDExists($id, $target_id_field, $target_event);
         } else {
             //otherwise use MRN to search
@@ -363,7 +230,7 @@ and rd.value = '%s'",
         //RepeatingForms saves by 'array' format, so format to be an array save
 
         //new change: if visit id is 1, then map to the baseline event (regardless of entry in 'to_repeat_event"
-        $visit_id = $row['visit_id'];
+        $visit_id = $this->visit_id;
 
         //array_filter will filter out values of '0' so add function to force it to include the 0 values
         $row = array_filter($row, function($value) {
@@ -381,6 +248,14 @@ and rd.value = '%s'",
 
 
         foreach ($row as $key => $val) {
+            //do some error cleaning here
+            if ($key == 'screen_hcdob_v2' && $visit_id !== '01') {
+                $msg = "This key, $key, has not enabled for this visit $visit_id. It will not be migrated." . $val;
+                $module->emError($msg);
+                $error_msg[] = $msg;
+                continue;
+            }
+
 
             if ($key == 'csf_collected') {
                 //$module->emDebug("KEY IS $key ". json_encode($val));
@@ -453,7 +328,7 @@ and rd.value = '%s'",
                             $target_field_array = array_replace($target_field_array, $mod_field_array);
                             break;
                         case "recodeRadio":
-                            $target_field_array = $this->transmogrifier->recodeRadio($key, $val);
+                            $target_field_array = $this->transmogrifier->recodeRadio($key, $val, $target_field, $def['map']);
 
                             break;
                         case "addToField":
@@ -479,7 +354,7 @@ and rd.value = '%s'",
 
             //if the event form is blank, it's the first event otherwise, it's the repeating event
             //new update, if the visit id is 01 AND PANS, then map it to first event (regardless of entry in to_repeat_event
-            $pans_first_visit = ($visit_id == '1') && ($this->protocol_id == '77');
+            $pans_first_visit = ($visit_id == '1') && (($this->protocol_id == '77') || ($this->protocol_id == '111'));
             if ((!empty($mapper[$key]['to_repeat_event'])) && (!$pans_first_visit)) {
             //if ((!empty($mapper[$key]['to_repeat_event'])) && ($visit_id !== '1')) {
                 //$module->emDebug("Setting $key into REPEAT EVENT: " .  $mapper[$key][$to_repeat_event]);
@@ -623,6 +498,11 @@ and rd.value = '%s'",
     public function getVisitData() {
         return $this->visit_data;
     }
+
+    public function firstVisit() {
+        return $this->visit_id == '01' ? true : false;
+    }
+
     public function getRepeatFormData() {
         return $this->repeat_form_data;
     }

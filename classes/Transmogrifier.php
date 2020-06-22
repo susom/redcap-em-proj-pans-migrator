@@ -281,13 +281,13 @@ class Transmogrifier {
      *
      *
      */
-    public function recodeRadio($from_field, $incoming_value) {
+    public function recodeRadio($from_field, $incoming_value, $target_field, $map) {
         global $module;
         //
-        $target_field = $this->modifier[$from_field]['fields'];
-        $outgoing_lookup = $this->modifier[$from_field]['mapping'];
+        //$target_field = $this->modifier[$from_field]['fields'];
+        //$outgoing_lookup = $this->modifier[$from_field]['mapping'];
 
-        $outgoing = $outgoing_lookup[$incoming_value];
+        $outgoing = $map[$incoming_value];
 
         $module->emDebug("RECODING $from_field value of $incoming_value TO $outgoing");
 
