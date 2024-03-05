@@ -185,13 +185,12 @@ class MappedRow {
 
         $sql = sprintf(
             "select rd.record, rd.instance 
-from %s rd
+from $data_table rd
 where
  rd.event_id = %d
 and rd.project_id = %d
 and rd.field_name = '%s'
 and rd.value = '%s'",
-            db_escape($data_table),
             db_escape($target_event),
             $module->getProjectId(),
             db_escape($target_id_field),
